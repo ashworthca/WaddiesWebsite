@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Waddies - The Ultimate Scoring App for Waddies Players</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 0;
+            color: #333;
+            background-color: #f5f5f7;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem 1rem;
+        }
+        .hero {
+            text-align: center;
+            padding: 4rem 1rem;
+            background-color: white;
+            border-radius: 12px;
+            margin-bottom: 3rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        h1 {
+            font-size: 3.5rem;
+            margin-bottom: 1rem;
+            color: #1a1a1a;
+            font-weight: 700;
+        }
+        .subtitle {
+            font-size: 1.8rem;
+            color: #666;
+            margin-bottom: 2rem;
+            font-weight: 300;
+        }
+        .features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            margin: 4rem 0;
+        }
+        .feature {
+            background: white;
+            padding: 2rem;
+            border-radius: 12px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        .feature h3 {
+            color: #1a1a1a;
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+        }
+        .feature p {
+            color: #666;
+            font-size: 1.1rem;
+        }
+        .screenshots {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 2rem;
+            margin: 4rem 0;
+        }
+        .screenshot {
+            background: white;
+            padding: 1rem;
+            border-radius: 12px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        .screenshot img {
+            width: 100%;
+            height: auto;
+            border-radius: 8px;
+        }
+        .screenshot-description {
+            margin-top: 1rem;
+            font-size: 0.9rem;
+            color: #666;
+            text-align: center;
+        }
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 2rem;
+            margin: 4rem 0;
+            text-align: center;
+        }
+        .stat {
+            background: white;
+            padding: 2rem;
+            border-radius: 12px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        .stat-number {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: #0070c9;
+            margin-bottom: 0.5rem;
+        }
+        .stat-label {
+            color: #666;
+            font-size: 1.1rem;
+        }
+        .cta {
+            text-align: center;
+            margin: 4rem 0;
+            padding: 4rem;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        .cta h2 {
+            font-size: 2.5rem;
+            margin-bottom: 1.5rem;
+            color: #1a1a1a;
+        }
+        .footer {
+            text-align: center;
+            margin-top: 4rem;
+            padding-top: 2rem;
+            border-top: 1px solid #ddd;
+        }
+        .footer a {
+            color: #0070c9;
+            text-decoration: none;
+            margin: 0 1rem;
+        }
+        .footer a:hover {
+            text-decoration: underline;
+        }
+        .app-version {
+            color: #666;
+            font-size: 0.9rem;
+            margin-top: 1rem;
+        }
+        .support-email {
+            color: #666;
+            font-size: 0.9rem;
+            margin-top: 0.5rem;
+        }
+        .support-email a {
+            display: inline;
+            padding: 0;
+            margin: 0;
+        }
+        .screenshot-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            margin: 3rem 0;
+        }
+        .screenshot-item {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 12px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        .screenshot-item img {
+            width: 100%;
+            max-width: 300px;
+            height: auto;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+        }
+        .screenshot-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: #1a1a1a;
+            margin-bottom: 0.5rem;
+        }
+        .screenshot-desc {
+            color: #666;
+            font-size: 1rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="hero">
+            <h1>Waddies</h1>
+            <div class="subtitle">Score Keeper & Tournament Manager</div>
+            <p>Take your Waddie games to the next level with our powerful scoring and tournament management app!</p>
+        </div>
+
+        <div class="features">
+            <div class="feature">
+                <h3>Smart Scoring</h3>
+                <p>Intuitive scoring interface with automatic point calculation and game state tracking. Support for 1v1 and 2v2 matches.</p>
+            </div>
+            <div class="feature">
+                <h3>Tournament Management</h3>
+                <p>Create and manage tournaments with ease. Track brackets, standings, and automatically generate match-ups.</p>
+            </div>
+            <div class="feature">
+                <h3>Player Statistics</h3>
+                <p>Detailed player stats including win rates, Waddie hole percentage, and closing success rate. Track your improvement over time.</p>
+            </div>
+        </div>
+
+        <div class="screenshot-grid">
+            <div class="screenshot-item">
+                <img src="images/tournament.png" alt="Tournament Setup Screen">
+                <div class="screenshot-title">Tournament Management</div>
+                <div class="screenshot-desc">Create and manage tournaments with customizable team names and player assignments.</div>
+            </div>
+            <div class="screenshot-item">
+                <img src="images/scoring.png" alt="Scoring Interface">
+                <div class="screenshot-title">Intuitive Scoring</div>
+                <div class="screenshot-desc">Easy-to-use scoring interface with hammer tracking and point calculation.</div>
+            </div>
+            <div class="screenshot-item">
+                <img src="images/stats.png" alt="Player Statistics">
+                <div class="screenshot-title">Detailed Statistics</div>
+                <div class="screenshot-desc">Track your performance with comprehensive player statistics.</div>
+            </div>
+            <div class="screenshot-item">
+                <img src="images/rules.png" alt="Game Rules">
+                <div class="screenshot-title">Game Rules</div>
+                <div class="screenshot-desc">Quick access to game rules and setup instructions.</div>
+            </div>
+        </div>
+
+        <div class="stats">
+            <div class="stat">
+                <div class="stat-number">1-2</div>
+                <div class="stat-label">Players per Team</div>
+            </div>
+            <div class="stat">
+                <div class="stat-number">21</div>
+                <div class="stat-label">Points to Win</div>
+            </div>
+            <div class="stat">
+                <div class="stat-number">∞</div>
+                <div class="stat-label">Fun to be Had</div>
+            </div>
+        </div>
+
+        <div class="cta">
+            <h2>Coming Soon to the App Store</h2>
+            <p>Get ready to revolutionize your Waddies experience!</p>
+        </div>
+
+        <div class="footer">
+            <a href="/">Home</a>
+            <a href="/privacypolicy.html">Privacy Policy</a>
+            <a href="/termsandconditions.html">Terms & Conditions</a>
+            <a href="/age-rating.html">Age Rating</a>
+            <div class="app-version">Version 1.0.0 • Requires iOS 17.0 or later</div>
+            <div class="support-email">Support: <a href="mailto:waddiesapp@gmail.com">waddiesapp@gmail.com</a></div>
+        </div>
+    </div>
+</body>
+</html>

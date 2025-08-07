@@ -81,6 +81,42 @@
             padding: 0;
             margin: 0;
         }
+        .preview-section {
+            margin: 3rem 0;
+            text-align: center;
+        }
+        .preview-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 2rem;
+            margin-top: 2rem;
+        }
+        .preview-item {
+            background: white;
+            padding: 1rem;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        .preview-item img {
+            width: 100%;
+            height: auto;
+            border-radius: 4px;
+        }
+        .marketing-link {
+            display: inline-block;
+            background: #0070c9;
+            color: white;
+            text-decoration: none;
+            padding: 1rem 2rem;
+            border-radius: 8px;
+            margin-top: 2rem;
+            font-weight: 500;
+            transition: background-color 0.2s;
+        }
+        .marketing-link:hover {
+            background: #0051a9;
+            text-decoration: none;
+        }
     </style>
 </head>
 <body>
@@ -104,6 +140,19 @@
                 <h3>Player Stats</h3>
                 <p>Track player statistics and game history. Monitor performance and improvement over time.</p>
             </div>
+        </div>
+
+        <div class="preview-section">
+            <h2>App Preview</h2>
+            <div class="preview-grid">
+                <div class="preview-item">
+                    <img src="images/scoring.png" alt="Scoring Interface">
+                </div>
+                <div class="preview-item">
+                    <img src="images/stats.png" alt="Player Statistics">
+                </div>
+            </div>
+            <a href="/marketing.html" class="marketing-link">Learn More About Waddies</a>
         </div>
 
         <div class="footer">
