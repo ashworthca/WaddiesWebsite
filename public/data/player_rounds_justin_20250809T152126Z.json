@@ -1,0 +1,1306 @@
+{
+  "0083E18E-A097-472C-8D1C-6F3264A09B8D": {
+    "meta": {
+      "gameID": "0083E18E-A097-472C-8D1C-6F3264A09B8D",
+      "gameType": "2v2",
+      "isValid": true,
+      "isWin": false,
+      "opponentScore": 21,
+      "opponents": [
+        "470EAFE2-A770-4076-B57E-2D0AFD65798A",
+        "0148CF30-2AB1-4062-94C7-A6CB48166D0C"
+      ],
+      "teamColor": "Purple",
+      "teamName": "The Justin-Zack Deliverers",
+      "teamScore": 10,
+      "teammates": [
+        "1042CF04-3961-4970-8D70-F3974353289D"
+      ]
+    },
+    "rounds": [
+      null,
+      {
+        "roundNumber": 1,
+        "score": 0,
+        "timestamp": 1754698366.358046,
+        "waddieStats": {
+          "holed": false,
+          "onBoard": false,
+          "thrown": true
+        }
+      },
+      {
+        "roundNumber": 2,
+        "score": 0,
+        "timestamp": 1754698407.896504,
+        "waddieStats": {
+          "holed": false,
+          "onBoard": false,
+          "thrown": false
+        }
+      },
+      {
+        "roundNumber": 3,
+        "score": 0,
+        "timestamp": 1754698453.887248,
+        "waddieStats": {
+          "holed": true,
+          "onBoard": true,
+          "thrown": true
+        }
+      },
+      {
+        "roundNumber": 4,
+        "score": 0,
+        "timestamp": 1754698500.1070151,
+        "waddieStats": {
+          "holed": false,
+          "onBoard": false,
+          "thrown": false
+        }
+      },
+      {
+        "roundNumber": 5,
+        "score": 3,
+        "timestamp": 1754698524.72382,
+        "waddieStats": {
+          "holed": true,
+          "onBoard": true,
+          "thrown": true
+        }
+      },
+      {
+        "roundNumber": 6,
+        "score": 0,
+        "timestamp": 1754698560.0533118,
+        "waddieStats": {
+          "holed": false,
+          "onBoard": false,
+          "thrown": false
+        }
+      },
+      {
+        "roundNumber": 7,
+        "score": 1,
+        "timestamp": 1754698588.80866,
+        "waddieStats": {
+          "holed": false,
+          "onBoard": true,
+          "thrown": true
+        }
+      },
+      {
+        "roundNumber": 8,
+        "score": 0,
+        "timestamp": 1754698631.954725,
+        "waddieStats": {
+          "holed": false,
+          "onBoard": false,
+          "thrown": false
+        }
+      },
+      {
+        "roundNumber": 9,
+        "score": 0,
+        "timestamp": 1754698660.341691,
+        "waddieStats": {
+          "holed": true,
+          "onBoard": true,
+          "thrown": true
+        }
+      },
+      {
+        "roundNumber": 10,
+        "score": 0,
+        "timestamp": 1754698691.317452,
+        "waddieStats": {
+          "holed": false,
+          "onBoard": false,
+          "thrown": false
+        }
+      },
+      {
+        "roundNumber": 11,
+        "score": 2,
+        "timestamp": 1754698722.2071009,
+        "waddieStats": {
+          "holed": false,
+          "onBoard": true,
+          "thrown": true
+        }
+      },
+      {
+        "roundNumber": 12,
+        "score": 0,
+        "timestamp": 1754698752.6731958,
+        "waddieStats": {
+          "holed": false,
+          "onBoard": false,
+          "thrown": false
+        }
+      },
+      {
+        "roundNumber": 13,
+        "score": 0,
+        "timestamp": 1754698781.194933,
+        "waddieStats": {
+          "holed": false,
+          "onBoard": true,
+          "thrown": true
+        }
+      },
+      {
+        "roundNumber": 14,
+        "score": 0,
+        "timestamp": 1754698817.644738,
+        "waddieStats": {
+          "holed": false,
+          "onBoard": false,
+          "thrown": false
+        }
+      }
+    ]
+  },
+  "14924BCA-50A8-4AE1-93B9-C8E24FD4BB8A": {
+    "meta": {
+      "gameID": "14924BCA-50A8-4AE1-93B9-C8E24FD4BB8A",
+      "gameType": "2v2",
+      "isValid": true,
+      "isWin": false,
+      "opponentScore": 21,
+      "opponents": [
+        "f8d0f7d473dce856c812f03dc63afc87f10180e42def05d51ea25054579acfb9",
+        "140FEA96-AD8D-4FEA-9B71-746F9A2B09BB"
+      ],
+      "teamColor": "Green",
+      "teamName": "Justin-Al Toques",
+      "teamScore": 13,
+      "teammates": [
+        "5AEBE0A0-35F1-4BE7-A6A2-BB82DD8A6CBB"
+      ]
+    },
+    "rounds": [
+      null,
+      {
+        "roundNumber": 1,
+        "score": 3,
+        "timestamp": 1754703156.349656,
+        "waddieStats": {
+          "holed": true,
+          "onBoard": true,
+          "thrown": true
+        }
+      },
+      {
+        "roundNumber": 2,
+        "score": 0,
+        "timestamp": 1754703193.4955301,
+        "waddieStats": {
+          "holed": false,
+          "onBoard": false,
+          "thrown": false
+        }
+      },
+      {
+        "roundNumber": 3,
+        "score": 0,
+        "timestamp": 1754703218.361212,
+        "waddieStats": {
+          "holed": false,
+          "onBoard": true,
+          "thrown": true
+        }
+      },
+      {
+        "roundNumber": 4,
+        "score": 0,
+        "timestamp": 1754703250.553533,
+        "waddieStats": {
+          "holed": false,
+          "onBoard": false,
+          "thrown": false
+        }
+      },
+      {
+        "roundNumber": 5,
+        "score": 3,
+        "timestamp": 1754703296.473452,
+        "waddieStats": {
+          "holed": true,
+          "onBoard": true,
+          "thrown": true
+        }
+      },
+      {
+        "roundNumber": 6,
+        "score": 0,
+        "timestamp": 1754703343.683568,
+        "waddieStats": {
+          "holed": false,
+          "onBoard": false,
+          "thrown": false
+        }
+      },
+      {
+        "roundNumber": 7,
+        "score": 0,
+        "timestamp": 1754703365.412111,
+        "waddieStats": {
+          "holed": false,
+          "onBoard": true,
+          "thrown": true
+        }
+      },
+      {
+        "roundNumber": 8,
+        "score": 0,
+        "timestamp": 1754703400.6719952,
+        "waddieStats": {
+          "holed": false,
+          "onBoard": false,
+          "thrown": false
+        }
+      },
+      {
+        "roundNumber": 9,
+        "score": 0,
+        "timestamp": 1754703428.9051418,
+        "waddieStats": {
+          "holed": true,
+          "onBoard": true,
+          "thrown": true
+        }
+      },
+      {
+        "roundNumber": 10,
+        "score": 0,
+        "timestamp": 1754703475.496027,
+        "waddieStats": {
+          "holed": false,
+          "onBoard": false,
+          "thrown": false
+        }
+      },
+      {
+        "roundNumber": 11,
+        "score": 3,
+        "timestamp": 1754703503.66418,
+        "waddieStats": {
+          "holed": true,
+          "onBoard": true,
+          "thrown": true
+        }
+      },
+      {
+        "roundNumber": 12,
+        "score": 0,
+        "timestamp": 1754703552.243761,
+        "waddieStats": {
+          "holed": false,
+          "onBoard": false,
+          "thrown": false
+        }
+      }
+    ]
+  },
+  "1C0BD707-67AE-4FA8-AE3B-CF11B465CFE5": {
+    "meta": {
+      "gameID": "1C0BD707-67AE-4FA8-AE3B-CF11B465CFE5",
+      "gameType": "2v2",
+      "isValid": true,
+      "isWin": false,
+      "opponentScore": 26,
+      "opponents": [
+        "A5932A4C-0594-4CA5-9FD3-572D73954F35",
+        "24F71F67-2B3E-4464-BD2E-C618959D6E4D"
+      ],
+      "teamColor": "Purple",
+      "teamName": "The Guard Justin-Jesse",
+      "teamScore": 9,
+      "teammates": [
+        "0148CF30-2AB1-4062-94C7-A6CB48166D0C"
+      ]
+    },
+    "rounds": [
+      null,
+      {
+        "roundNumber": 1,
+        "score": 4,
+        "timestamp": 1754616187.233243,
+        "waddieStats": {
+          "holed": true,
+          "onBoard": true,
+          "thrown": true
+        }
+      },
+      {
+        "roundNumber": 2,
+        "score": 0,
+        "timestamp": 1754616230.39824,
+        "waddieStats": {
+          "holed": false,
+          "onBoard": false,
+          "thrown": false
+        }
+      },
+      {
+        "roundNumber": 3,
+        "score": 0,
+        "timestamp": 1754616311.6134481,
+        "waddieStats": {
+          "holed": false,
+          "onBoard": true,
+          "thrown": true
+        }
+      },
+      {
+        "roundNumber": 4,
+        "score": 0,
+        "timestamp": 1754616342.8377209,
+        "waddieStats": {
+          "holed": false,
+          "onBoard": false,
+          "thrown": false
+        }
+      },
+      {
+        "roundNumber": 5,
+        "score": 0,
+        "timestamp": 1754616374.7756839,
+        "waddieStats": {
+          "holed": true,
+          "onBoard": true,
+          "thrown": true
+        }
+      },
+      {
+        "roundNumber": 6,
+        "score": 0,
+        "timestamp": 1754616444.88027,
+        "waddieStats": {
+          "holed": false,
+          "onBoard": false,
+          "thrown": false
+        }
+      },
+      {
+        "roundNumber": 7,
+        "score": 0,
+        "timestamp": 1754616470.862022,
+        "waddieStats": {
+          "holed": true,
+          "onBoard": true,
+          "thrown": true
+        }
+      },
+      {
+        "roundNumber": 8,
+        "score": 0,
+        "timestamp": 1754616535.1245809,
+        "waddieStats": {
+          "holed": false,
+          "onBoard": false,
+          "thrown": false
+        }
+      },
+      {
+        "roundNumber": 9,
+        "score": 0,
+        "timestamp": 1754616610.565589,
+        "waddieStats": {
+          "holed": true,
+          "onBoard": true,
+          "thrown": true
+        }
+      }
+    ]
+  },
+  "1C4EDA46-908A-4E14-B5EA-509FF94CDA2E": {
+    "meta": {
+      "gameID": "1C4EDA46-908A-4E14-B5EA-509FF94CDA2E",
+      "gameType": "1v1",
+      "isValid": true,
+      "isWin": true,
+      "opponentScore": 12,
+      "opponents": [
+        "140FEA96-AD8D-4FEA-9B71-746F9A2B09BB"
+      ],
+      "teamColor": "Green",
+      "teamName": "Team Justin",
+      "teamScore": 22
+    },
+    "rounds": [
+      null,
+      {
+        "roundNumber": 1,
+        "score": 1,
+        "timestamp": 1754611916.014144,
+        "waddieStats": {
+          "holed": false,
+          "onBoard": true,
+          "thrown": true
+        }
+      },
+      {
+        "roundNumber": 2,
+        "score": 4,
+        "timestamp": 1754611947.477787,
+        "waddieStats": {
+          "holed": true,
+          "onBoard": true,
+          "thrown": true
+        }
+      },
+      {
+        "roundNumber": 3,
+        "score": 0,
+        "timestamp": 1754611977.0573301,
+        "waddieStats": {
+          "holed": false,
+          "onBoard": true,
+          "thrown": true
+        }
+      },
+      {
+        "roundNumber": 4,
+        "score": 0,
+        "timestamp": 1754612024.156989,
+        "waddieStats": {
+          "holed": false,
+          "onBoard": true,
+          "thrown": true
+        }
+      },
+      {
+        "roundNumber": 5,
+        "score": 0,
+        "timestamp": 1754612051.134534,
+        "waddieStats": {
+          "holed": true,
+          "onBoard": true,
+          "thrown": true
+        }
+      },
+      {
+        "roundNumber": 6,
+        "score": 4,
+        "timestamp": 1754612084.952527,
+        "waddieStats": {
+          "holed": true,
+          "onBoard": true,
+          "thrown": true
+        }
+      },
+      {
+        "roundNumber": 7,
+        "score": 1,
+        "timestamp": 1754612111.829705,
+        "waddieStats": {
+          "holed": false,
+          "onBoard": true,
+          "thrown": true
+        }
+      },
+      {
+        "roundNumber": 8,
+        "score": 3,
+        "timestamp": 1754612136.1862721,
+        "waddieStats": {
+          "holed": true,
+          "onBoard": true,
+          "thrown": true
+        }
+      },
+      {
+        "roundNumber": 9,
+        "score": 0,
+        "timestamp": 1754612185.153494,
+        "waddieStats": {
+          "holed": true,
+          "onBoard": true,
+          "thrown": true
+        }
+      },
+      {
+        "roundNumber": 10,
+        "score": 1,
+        "timestamp": 1754612214.9165921,
+        "waddieStats": {
+          "holed": false,
+          "onBoard": true,
+          "thrown": true
+        }
+      },
+      {
+        "roundNumber": 11,
+        "score": 3,
+        "timestamp": 1754612243.412634,
+        "waddieStats": {
+          "holed": true,
+          "onBoard": true,
+          "thrown": true
+        }
+      },
+      {
+        "roundNumber": 12,
+        "score": 0,
+        "timestamp": 1754612283.166125,
+        "waddieStats": {
+          "holed": false,
+          "onBoard": true,
+          "thrown": true
+        }
+      },
+      {
+        "roundNumber": 13,
+        "score": 3,
+        "timestamp": 1754612323.087617,
+        "waddieStats": {
+          "holed": true,
+          "onBoard": true,
+          "thrown": true
+        }
+      },
+      {
+        "roundNumber": 14,
+        "score": 2,
+        "timestamp": 1754612355.205027,
+        "waddieStats": {
+          "holed": false,
+          "onBoard": true,
+          "thrown": true
+        }
+      }
+    ]
+  },
+  "4149CE7C-F320-4FB8-99A5-94D80E3479AC": {
+    "meta": {
+      "gameID": "4149CE7C-F320-4FB8-99A5-94D80E3479AC",
+      "gameType": "2v2",
+      "isValid": true,
+      "isWin": true,
+      "opponentScore": 19,
+      "opponents": [
+        "f8d0f7d473dce856c812f03dc63afc87f10180e42def05d51ea25054579acfb9",
+        "140FEA96-AD8D-4FEA-9B71-746F9A2B09BB"
+      ],
+      "teamColor": "Purple",
+      "teamName": "Justin & Al",
+      "teamScore": 21,
+      "teammates": [
+        "5AEBE0A0-35F1-4BE7-A6A2-BB82DD8A6CBB"
+      ]
+    },
+    "rounds": [
+      null,
+      {
+        "roundNumber": 1,
+        "score": 3,
+        "timestamp": 1754701091.957011,
+        "waddieStats": {
+          "holed": true,
+          "onBoard": true,
+          "thrown": true
+        }
+      },
+      {
+        "roundNumber": 2,
+        "score": 0,
+        "timestamp": 1754701130.525546,
+        "waddieStats": {
+          "holed": false,
+          "onBoard": false,
+          "thrown": false
+        }
+      },
+      {
+        "roundNumber": 3,
+        "score": 3,
+        "timestamp": 1754701160.216082,
+        "waddieStats": {
+          "holed": true,
+          "onBoard": true,
+          "thrown": true
+        }
+      },
+      {
+        "roundNumber": 4,
+        "score": 0,
+        "timestamp": 1754701199.082004,
+        "waddieStats": {
+          "holed": false,
+          "onBoard": false,
+          "thrown": false
+        }
+      },
+      {
+        "roundNumber": 5,
+        "score": 3,
+        "timestamp": 1754701234.559778,
+        "waddieStats": {
+          "holed": true,
+          "onBoard": true,
+          "thrown": true
+        }
+      },
+      {
+        "roundNumber": 6,
+        "score": 0,
+        "timestamp": 1754701263.006175,
+        "waddieStats": {
+          "holed": false,
+          "onBoard": false,
+          "thrown": false
+        }
+      },
+      {
+        "roundNumber": 7,
+        "score": 0,
+        "timestamp": 1754701285.591898,
+        "waddieStats": {
+          "holed": true,
+          "onBoard": true,
+          "thrown": true
+        }
+      },
+      {
+        "roundNumber": 8,
+        "score": 0,
+        "timestamp": 1754701317.062872,
+        "waddieStats": {
+          "holed": false,
+          "onBoard": false,
+          "thrown": false
+        }
+      },
+      {
+        "roundNumber": 9,
+        "score": 0,
+        "timestamp": 1754701343.044404,
+        "waddieStats": {
+          "holed": false,
+          "onBoard": true,
+          "thrown": true
+        }
+      },
+      {
+        "roundNumber": 10,
+        "score": 0,
+        "timestamp": 1754701379.990654,
+        "waddieStats": {
+          "holed": false,
+          "onBoard": false,
+          "thrown": false
+        }
+      },
+      {
+        "roundNumber": 11,
+        "score": 3,
+        "timestamp": 1754701432.204108,
+        "waddieStats": {
+          "holed": true,
+          "onBoard": true,
+          "thrown": true
+        }
+      },
+      {
+        "roundNumber": 12,
+        "score": 0,
+        "timestamp": 1754701480.9320688,
+        "waddieStats": {
+          "holed": false,
+          "onBoard": false,
+          "thrown": false
+        }
+      },
+      {
+        "roundNumber": 13,
+        "score": 0,
+        "timestamp": 1754701508.418939,
+        "waddieStats": {
+          "holed": false,
+          "onBoard": true,
+          "thrown": true
+        }
+      },
+      {
+        "roundNumber": 14,
+        "score": 0,
+        "timestamp": 1754701539.440495,
+        "waddieStats": {
+          "holed": false,
+          "onBoard": false,
+          "thrown": false
+        }
+      },
+      {
+        "roundNumber": 15,
+        "score": 0,
+        "timestamp": 1754701636.497524,
+        "waddieStats": {
+          "holed": true,
+          "onBoard": true,
+          "thrown": true
+        }
+      },
+      {
+        "roundNumber": 16,
+        "score": 0,
+        "timestamp": 1754701680.751233,
+        "waddieStats": {
+          "holed": false,
+          "onBoard": false,
+          "thrown": false
+        }
+      },
+      {
+        "roundNumber": 17,
+        "score": 3,
+        "timestamp": 1754701718.436782,
+        "waddieStats": {
+          "holed": true,
+          "onBoard": true,
+          "thrown": true
+        }
+      }
+    ]
+  },
+  "C168C6A2-EA80-49F5-8C0A-F39ADE1B3631": {
+    "meta": {
+      "gameID": "C168C6A2-EA80-49F5-8C0A-F39ADE1B3631",
+      "gameType": "2v2",
+      "isValid": true,
+      "isWin": true,
+      "opponentScore": 9,
+      "opponents": [
+        "A5932A4C-0594-4CA5-9FD3-572D73954F35",
+        "140FEA96-AD8D-4FEA-9B71-746F9A2B09BB"
+      ],
+      "teamColor": "Purple",
+      "teamName": "The Great White Justin-Jesse",
+      "teamScore": 21,
+      "teammates": [
+        "0148CF30-2AB1-4062-94C7-A6CB48166D0C"
+      ]
+    },
+    "rounds": [
+      null,
+      {
+        "roundNumber": 1,
+        "score": 0,
+        "timestamp": 1754614848.016226,
+        "waddieStats": {
+          "holed": false,
+          "onBoard": false,
+          "thrown": false
+        }
+      },
+      {
+        "roundNumber": 2,
+        "score": 0,
+        "timestamp": 1754614875.553218,
+        "waddieStats": {
+          "holed": false,
+          "onBoard": true,
+          "thrown": true
+        }
+      },
+      {
+        "roundNumber": 3,
+        "score": 0,
+        "timestamp": 1754614922.563174,
+        "waddieStats": {
+          "holed": false,
+          "onBoard": false,
+          "thrown": false
+        }
+      },
+      {
+        "roundNumber": 4,
+        "score": 3,
+        "timestamp": 1754614963.3818011,
+        "waddieStats": {
+          "holed": true,
+          "onBoard": true,
+          "thrown": true
+        }
+      },
+      {
+        "roundNumber": 5,
+        "score": 0,
+        "timestamp": 1754614989.730884,
+        "waddieStats": {
+          "holed": false,
+          "onBoard": false,
+          "thrown": false
+        }
+      },
+      {
+        "roundNumber": 6,
+        "score": 0,
+        "timestamp": 1754615036.870686,
+        "waddieStats": {
+          "holed": false,
+          "onBoard": true,
+          "thrown": true
+        }
+      },
+      {
+        "roundNumber": 7,
+        "score": 0,
+        "timestamp": 1754615077.554153,
+        "waddieStats": {
+          "holed": false,
+          "onBoard": false,
+          "thrown": false
+        }
+      },
+      {
+        "roundNumber": 8,
+        "score": 0,
+        "timestamp": 1754615108.040969,
+        "waddieStats": {
+          "holed": true,
+          "onBoard": true,
+          "thrown": true
+        }
+      },
+      {
+        "roundNumber": 9,
+        "score": 0,
+        "timestamp": 1754615139.101028,
+        "waddieStats": {
+          "holed": false,
+          "onBoard": false,
+          "thrown": false
+        }
+      }
+    ]
+  },
+  "C3256156-3C13-46A9-91D6-32978BFE072C": {
+    "meta": {
+      "gameID": "C3256156-3C13-46A9-91D6-32978BFE072C",
+      "gameType": "2v2",
+      "isValid": true,
+      "isWin": false,
+      "opponentScore": 22,
+      "opponents": [
+        "f8d0f7d473dce856c812f03dc63afc87f10180e42def05d51ea25054579acfb9",
+        "140FEA96-AD8D-4FEA-9B71-746F9A2B09BB"
+      ],
+      "teamColor": "Green",
+      "teamName": "Justin-Al Toques",
+      "teamScore": 17,
+      "teammates": [
+        "5AEBE0A0-35F1-4BE7-A6A2-BB82DD8A6CBB"
+      ]
+    },
+    "rounds": [
+      null,
+      {
+        "roundNumber": 1,
+        "score": 1,
+        "timestamp": 1754702624.932873,
+        "waddieStats": {
+          "holed": false,
+          "onBoard": true,
+          "thrown": true
+        }
+      },
+      {
+        "roundNumber": 2,
+        "score": 0,
+        "timestamp": 1754702694.47218,
+        "waddieStats": {
+          "holed": false,
+          "onBoard": false,
+          "thrown": false
+        }
+      },
+      {
+        "roundNumber": 3,
+        "score": 0,
+        "timestamp": 1754702728.475225,
+        "waddieStats": {
+          "holed": true,
+          "onBoard": true,
+          "thrown": true
+        }
+      },
+      {
+        "roundNumber": 4,
+        "score": 0,
+        "timestamp": 1754702759.343364,
+        "waddieStats": {
+          "holed": false,
+          "onBoard": false,
+          "thrown": false
+        }
+      },
+      {
+        "roundNumber": 5,
+        "score": 1,
+        "timestamp": 1754702803.1665668,
+        "waddieStats": {
+          "holed": false,
+          "onBoard": true,
+          "thrown": true
+        }
+      },
+      {
+        "roundNumber": 6,
+        "score": 0,
+        "timestamp": 1754702836.326346,
+        "waddieStats": {
+          "holed": false,
+          "onBoard": false,
+          "thrown": false
+        }
+      },
+      {
+        "roundNumber": 7,
+        "score": 2,
+        "timestamp": 1754702880.8663368,
+        "waddieStats": {
+          "holed": false,
+          "onBoard": true,
+          "thrown": true
+        }
+      },
+      {
+        "roundNumber": 8,
+        "score": 0,
+        "timestamp": 1754702918.062542,
+        "waddieStats": {
+          "holed": false,
+          "onBoard": false,
+          "thrown": false
+        }
+      },
+      {
+        "roundNumber": 9,
+        "score": 0,
+        "timestamp": 1754702947.1626902,
+        "waddieStats": {
+          "holed": true,
+          "onBoard": true,
+          "thrown": true
+        }
+      },
+      {
+        "roundNumber": 10,
+        "score": 0,
+        "timestamp": 1754703012.801023,
+        "waddieStats": {
+          "holed": false,
+          "onBoard": false,
+          "thrown": false
+        }
+      },
+      {
+        "roundNumber": 11,
+        "score": 0,
+        "timestamp": 1754703051.7516232,
+        "waddieStats": {
+          "holed": true,
+          "onBoard": true,
+          "thrown": true
+        }
+      }
+    ]
+  },
+  "D248ED67-50CC-4B44-8DE9-44069FB056C3": {
+    "meta": {
+      "gameID": "D248ED67-50CC-4B44-8DE9-44069FB056C3",
+      "gameType": "2v2",
+      "isValid": true,
+      "isWin": true,
+      "opponentScore": 17,
+      "opponents": [
+        "4B0CE000-3A16-4E01-A248-FA9E450C90EA",
+        "49B6EAC5-BFF3-4AA8-85F1-6D8852C83E07"
+      ],
+      "teamColor": "Purple",
+      "teamName": "The Justin-Zack Deliverers",
+      "teamScore": 23,
+      "teammates": [
+        "1042CF04-3961-4970-8D70-F3974353289D"
+      ]
+    },
+    "rounds": [
+      null,
+      {
+        "roundNumber": 1,
+        "score": 7,
+        "timestamp": 1754698997.4372401,
+        "waddieStats": {
+          "holed": true,
+          "onBoard": true,
+          "thrown": true
+        }
+      },
+      {
+        "roundNumber": 2,
+        "score": 0,
+        "timestamp": 1754698998.922563,
+        "waddieStats": {
+          "holed": false,
+          "onBoard": false,
+          "thrown": false
+        }
+      },
+      {
+        "roundNumber": 3,
+        "score": 3,
+        "timestamp": 1754699000.256933,
+        "waddieStats": {
+          "holed": true,
+          "onBoard": true,
+          "thrown": true
+        }
+      },
+      {
+        "roundNumber": 4,
+        "score": 0,
+        "timestamp": 1754699016.2887812,
+        "waddieStats": {
+          "holed": false,
+          "onBoard": false,
+          "thrown": false
+        }
+      },
+      {
+        "roundNumber": 5,
+        "score": 0,
+        "timestamp": 1754699025.036699,
+        "waddieStats": {
+          "holed": true,
+          "onBoard": true,
+          "thrown": true
+        }
+      },
+      {
+        "roundNumber": 6,
+        "score": 0,
+        "timestamp": 1754699031.676225,
+        "waddieStats": {
+          "holed": false,
+          "onBoard": false,
+          "thrown": false
+        }
+      },
+      {
+        "roundNumber": 7,
+        "score": 0,
+        "timestamp": 1754699038.201602,
+        "waddieStats": {
+          "holed": false,
+          "onBoard": false,
+          "thrown": true
+        }
+      },
+      {
+        "roundNumber": 8,
+        "score": 0,
+        "timestamp": 1754699047.584554,
+        "waddieStats": {
+          "holed": false,
+          "onBoard": false,
+          "thrown": false
+        }
+      },
+      {
+        "roundNumber": 9,
+        "score": 4,
+        "timestamp": 1754699075.247858,
+        "waddieStats": {
+          "holed": true,
+          "onBoard": true,
+          "thrown": true
+        }
+      },
+      {
+        "roundNumber": 10,
+        "score": 0,
+        "timestamp": 1754699103.921507,
+        "waddieStats": {
+          "holed": false,
+          "onBoard": false,
+          "thrown": false
+        }
+      },
+      {
+        "roundNumber": 11,
+        "score": 0,
+        "timestamp": 1754699126.024547,
+        "waddieStats": {
+          "holed": false,
+          "onBoard": true,
+          "thrown": true
+        }
+      },
+      {
+        "roundNumber": 12,
+        "score": 0,
+        "timestamp": 1754699144.948176,
+        "waddieStats": {
+          "holed": false,
+          "onBoard": false,
+          "thrown": false
+        }
+      },
+      {
+        "roundNumber": 13,
+        "score": 1,
+        "timestamp": 1754699166.275013,
+        "waddieStats": {
+          "holed": false,
+          "onBoard": true,
+          "thrown": true
+        }
+      },
+      {
+        "roundNumber": 14,
+        "score": 0,
+        "timestamp": 1754699191.406448,
+        "waddieStats": {
+          "holed": false,
+          "onBoard": false,
+          "thrown": false
+        }
+      },
+      {
+        "roundNumber": 15,
+        "score": 2,
+        "timestamp": 1754699219.142245,
+        "waddieStats": {
+          "holed": false,
+          "onBoard": true,
+          "thrown": true
+        }
+      },
+      {
+        "roundNumber": 16,
+        "score": 0,
+        "timestamp": 1754699245.055829,
+        "waddieStats": {
+          "holed": false,
+          "onBoard": false,
+          "thrown": false
+        }
+      }
+    ]
+  },
+  "F03FCF73-6946-4AAA-A2BA-43612B1674DC": {
+    "meta": {
+      "gameID": "F03FCF73-6946-4AAA-A2BA-43612B1674DC",
+      "gameType": "2v2",
+      "isValid": true,
+      "isWin": false,
+      "opponentScore": 21,
+      "opponents": [
+        "f8d0f7d473dce856c812f03dc63afc87f10180e42def05d51ea25054579acfb9",
+        "140FEA96-AD8D-4FEA-9B71-746F9A2B09BB"
+      ],
+      "teamColor": "Purple",
+      "teamName": "The Justin-Zack Deliverers",
+      "teamScore": 5,
+      "teammates": [
+        "1042CF04-3961-4970-8D70-F3974353289D"
+      ]
+    },
+    "rounds": [
+      null,
+      {
+        "roundNumber": 1,
+        "score": 0,
+        "timestamp": 1754700094.9502249,
+        "waddieStats": {
+          "holed": true,
+          "onBoard": true,
+          "thrown": true
+        }
+      },
+      {
+        "roundNumber": 2,
+        "score": 0,
+        "timestamp": 1754700127.575978,
+        "waddieStats": {
+          "holed": false,
+          "onBoard": false,
+          "thrown": false
+        }
+      },
+      {
+        "roundNumber": 3,
+        "score": 0,
+        "timestamp": 1754700154.1898541,
+        "waddieStats": {
+          "holed": false,
+          "onBoard": true,
+          "thrown": true
+        }
+      },
+      {
+        "roundNumber": 4,
+        "score": 0,
+        "timestamp": 1754700184.36194,
+        "waddieStats": {
+          "holed": false,
+          "onBoard": false,
+          "thrown": false
+        }
+      },
+      {
+        "roundNumber": 5,
+        "score": 0,
+        "timestamp": 1754700212.7964392,
+        "waddieStats": {
+          "holed": false,
+          "onBoard": true,
+          "thrown": true
+        }
+      },
+      {
+        "roundNumber": 6,
+        "score": 0,
+        "timestamp": 1754700240.846659,
+        "waddieStats": {
+          "holed": false,
+          "onBoard": false,
+          "thrown": false
+        }
+      },
+      {
+        "roundNumber": 7,
+        "score": 0,
+        "timestamp": 1754700264.429601,
+        "waddieStats": {
+          "holed": false,
+          "onBoard": true,
+          "thrown": true
+        }
+      },
+      {
+        "roundNumber": 8,
+        "score": 0,
+        "timestamp": 1754700301.179906,
+        "waddieStats": {
+          "holed": false,
+          "onBoard": false,
+          "thrown": false
+        }
+      },
+      {
+        "roundNumber": 9,
+        "score": 0,
+        "timestamp": 1754700324.058466,
+        "waddieStats": {
+          "holed": true,
+          "onBoard": true,
+          "thrown": true
+        }
+      }
+    ]
+  }
+}
