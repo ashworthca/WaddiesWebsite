@@ -4,10 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Waddies - Player Statistics</title>
-    <!-- Firebase SDK -->
-    <script defer src="/__/firebase/10.8.0/firebase-app-compat.js"></script>
-    <script defer src="/__/firebase/10.8.0/firebase-database-compat.js"></script>
-    <script defer src="/__/firebase/init.js?useEmulator=false"></script>
+    <!-- No Firebase SDK needed for local data -->
     <!-- Chart.js for statistics visualization -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
@@ -272,22 +269,27 @@
                 if (e.target === modal) modal.style.display = 'none';
             };
 
-            // Initialize Firebase and load data
-            firebase.initializeApp({
-                // Firebase will auto-populate config from __/firebase/init.js
-            });
-
             // Load and display player statistics
-            function loadPlayerStats() {
-                const dbRef = firebase.database().ref('/players');
-                dbRef.once('value').then((snapshot) => {
-                    playersData = snapshot.val() || {};
+            async function loadPlayerStats() {
+                try {
+                    // Load players data
+                    const playersResponse = await fetch('data/players_20250809T140413Z.json');
+                    playersData = await playersResponse.json();
+
+                    // Load games data
+                    const gamesResponse = await fetch('data/games_20250809T152129Z.json');
+                    gamesData = await gamesResponse.json();
+
+                    // Load player rounds data
+                    const playerRoundsResponse = await fetch('data/player_rounds_justin_20250809T152126Z.json');
+                    playerRoundsData = await playerRoundsResponse.json();
+
                     updateTable();
-                }).catch((error) => {
-                    console.error('Error loading player data:', error);
+                } catch (error) {
+                    console.error('Error loading data:', error);
                     document.querySelector('.stats-table').insertAdjacentHTML('beforebegin', 
-                        '<div class="error">Error loading player statistics. Please try again later.</div>');
-                });
+                        '<div class="error">Error loading statistics. Please try again later.</div>');
+                };
             }
 
             // Update table with current filters and sorting
@@ -300,12 +302,16 @@
                 let players = Object.entries(playersData).map(([id, data]) => ({
                     id,
                     name: data.name,
-                    wins: calculateWins(data, dateRange, gameType),
-                    losses: calculateLosses(data, dateRange, gameType),
-                    totalGames: calculateTotalGames(data, dateRange, gameType),
-                    pointsScored: calculatePointsScored(data, dateRange, gameType),
-                    scoringPercent: calculateScoringPercent(data, dateRange, gameType),
-                    closingPercent: calculateClosingPercent(data, dateRange, gameType)
+                    wins: calculateWins(id, dateRange, gameType),
+                    losses: calculateLosses(id, dateRange, gameType),
+                    totalGames: calculateTotalGames(id, dateRange, gameType),
+                    avgPointsPerRound: calculateAveragePointsPerRound(id),
+                    waddiesHoled: calculateWaddiesHoled(id),
+                    scoringRounds: calculateScoringRounds(id),
+                    bestRound: calculateBestRound(id),
+                    hammerPercent: calculateHammerPercentage(id),
+                    shootingFirstPercent: calculateShootingFirstPercentage(id),
+                    carryPercent: calculateCarryPercentage(id)
                 }));
 
                 // Sort players
