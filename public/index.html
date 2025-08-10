@@ -117,6 +117,22 @@
             background: #0051a9;
             text-decoration: none;
         }
+        .stats-link {
+            display: inline-block;
+            background: #28a745;
+            color: white;
+            text-decoration: none;
+            padding: 1rem 2rem;
+            border-radius: 8px;
+            margin-top: 2rem;
+            margin-left: 1rem;
+            font-weight: 500;
+            transition: background-color 0.2s;
+        }
+        .stats-link:hover {
+            background: #1e7e34;
+            text-decoration: none;
+        }
     </style>
 </head>
 <body>
@@ -149,10 +165,11 @@
                     <img src="images/scoring.png" alt="Scoring Interface">
                 </div>
                 <div class="preview-item">
-                    <img src="images/stats.png" alt="Player Statistics">
+                    <a href="stats.html"><img src="images/stats.png" alt="Player Statistics"></a>
                 </div>
             </div>
             <a href="marketing.html" class="marketing-link">Learn More About Waddies</a>
+            <a href="stats.html" class="stats-link">View Player Stats</a>
         </div>
 
         <div class="footer">
