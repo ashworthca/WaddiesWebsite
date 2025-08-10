@@ -1,0 +1,6 @@
+{
+  "rules": {
+    ".read": true,  // Allow public read access to all data
+    ".write": false // Disable write access from web
+  }
+}
