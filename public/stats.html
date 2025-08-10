@@ -208,6 +208,10 @@
             </div>
         </div>
 
+        <div id="loadingIndicator" class="loading" style="display: none;">
+            Loading statistics...
+        </div>
+
         <table class="stats-table">
             <thead>
                 <tr>
@@ -274,22 +278,54 @@
 
             // Initialize Firebase and load data
             function loadPlayerStats() {
-                const db = firebase.database();
-                
-                Promise.all([
-                    db.ref('/players').once('value'),
-                    db.ref('/games').once('value'),
-                    db.ref('/player_rounds').once('value')
-                ]).then(([playersSnapshot, gamesSnapshot, roundsSnapshot]) => {
-                    playersData = playersSnapshot.val() || {};
-                    gamesData = gamesSnapshot.val() || {};
-                    playerRoundsData = roundsSnapshot.val() || {};
-                    updateTable();
-                }).catch((error) => {
-                    console.error('Error loading data:', error);
+                document.getElementById('loadingIndicator').style.display = 'block';
+                try {
+                    console.log('Initializing Firebase...');
+                    firebase.initializeApp({
+                        databaseURL: "https://waddies-default-rtdb.firebaseio.com"
+                    });
+                    
+                    console.log('Firebase initialized, getting database reference...');
+                    const db = firebase.database();
+                    
+                    console.log('Loading data from RTDB...');
+                    Promise.all([
+                        db.ref('/players').once('value').then(snapshot => {
+                            console.log('Players data loaded:', snapshot.exists());
+                            return snapshot;
+                        }),
+                        db.ref('/games').once('value').then(snapshot => {
+                            console.log('Games data loaded:', snapshot.exists());
+                            return snapshot;
+                        }),
+                        db.ref('/player_rounds').once('value').then(snapshot => {
+                            console.log('Player rounds data loaded:', snapshot.exists());
+                            return snapshot;
+                        })
+                    ]).then(([playersSnapshot, gamesSnapshot, roundsSnapshot]) => {
+                        playersData = playersSnapshot.val() || {};
+                        gamesData = gamesSnapshot.val() || {};
+                        playerRoundsData = roundsSnapshot.val() || {};
+                        console.log('All data loaded successfully');
+                        console.log('Players:', Object.keys(playersData).length);
+                        console.log('Games:', Object.keys(gamesData).length);
+                        console.log('Player Rounds:', Object.keys(playerRoundsData).length);
+                        document.getElementById('loadingIndicator').style.display = 'none';
+                        updateTable();
+                    }).catch((error) => {
+                        console.error('Error loading data:', error);
+                        let errorMessage = 'Error loading statistics: ' + error.message;
+                        if (error.code) {
+                            errorMessage += ' (Code: ' + error.code + ')';
+                        }
+                        document.querySelector('.stats-table').insertAdjacentHTML('beforebegin', 
+                            `<div class="error">${errorMessage}</div>`);
+                    });
+                } catch (error) {
+                    console.error('Error initializing Firebase:', error);
                     document.querySelector('.stats-table').insertAdjacentHTML('beforebegin', 
-                        '<div class="error">Error loading statistics. Please try again later.</div>');
-                });
+                        `<div class="error">Error initializing Firebase: ${error.message}</div>`);
+                }
             }
 
             // Update table with current filters and sorting
