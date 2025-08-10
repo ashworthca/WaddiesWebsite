@@ -163,7 +163,31 @@
         const g=games[e.gameId]; const when = g?.date? new Date(g.date*1000).toLocaleString():'';
         const li=document.createElement('li'); li.className='game-item'; li.dataset.gid=e.gameId;
         const pm = prettyMatchup(pid, g);
-        li.innerHTML = `<div class="line1">${pm.title}</div><div class="line2"><span class="badge">${pm.score}</span><span>${when}</span></div>`;
+        const typeBadge = g?.gameType ? `<span class=\"badge badge-type\">${g.gameType}</span>` : '';
+        const proIcon = g?.scoringMode === 'teamAttempts' ? `<span class=\"icon\" title=\"Pro Stats\">📊</span>` : '';
+        const trophy = g?.tournamentId ? `<span class=\"icon\" title=\"Tournament\">🏆</span>` : '';
+        const excluded = (g?.noStats || g?.isDisputed) ? `<span class=\"badge badge-warn\">Excluded from Stats</span>` : '';
+        const mineKey = teamInfo(pid, g).idx===1? 'team1':'team2';
+        const t1Players = teamPlayersList(g,'team1');
+        const t2Players = teamPlayersList(g,'team2');
+        li.innerHTML = `
+          <div class=\"game-row\">
+            <div class=\"row-header\">${typeBadge}<span class=\"date\">${when}</span>${proIcon}${trophy}${excluded}</div>
+            <div class=\"row-main\">
+              <div class=\"team left ${mineKey==='team1'?'my':''}\">
+                <div class=\"name\">${teamNames(g,'team1') || 'Team 1'}</div>
+                <div class=\"players\">${t1Players}</div>
+                <div class=\"sub\">${g?.teams?.team1?.score ?? ''} points</div>
+              </div>
+              <div class=\"vs\">VS</div>
+              <div class=\"team right ${mineKey==='team2'?'my':''}\">
+                <div class=\"name\">${teamNames(g,'team2') || 'Team 2'}</div>
+                <div class=\"players\">${t2Players}</div>
+                <div class=\"sub\">${g?.teams?.team2?.score ?? ''} points</div>
+              </div>
+            </div>
+            ${g?.winner?.players ? `<div class=\"winner\">Winners: ${Object.keys(g.winner.players).map(id=> players[id]?.name || id.substring(0,6)).join(', ')}</div>`:''}
+          </div>`;
         li.onclick=()=> { document.querySelectorAll('.game-item').forEach(n=>n.classList.remove('active')); li.classList.add('active'); showGame(pid, e); };
         list.appendChild(li);
       }
@@ -176,15 +200,45 @@
       // build richer header with named teams
       el('gameHeader').innerHTML = `<strong>${pm.title}</strong> <span class="badge">${pm.score}</span> · ${new Date((g?.date||0)*1000).toLocaleString()}`;
       const roundsDiv = el('rounds'); roundsDiv.innerHTML='';
-      // join by roundNumber
+      // join by roundNumber and render
+      let prevTs = null;
       for(const r of entry.rounds){
-        const rn=r.roundNumber||0; const gr = rs.find(x=> (x?.roundNumber||0)===rn) || rs[rn-1] || null;
-        const per = Number(r.score||0);
-        const pts = Number(gr?.pointsScored||0);
-        const toss = (gr && ((gr.team1TosserId===pid)||(gr.team2TosserId===pid))) ? 'Tossed' : '—';
-        const line = document.createElement('div'); line.className='round';
-        line.textContent = `R${rn}: per=${per} teamPts=${pts} ${toss}`;
-        roundsDiv.appendChild(line);
+        const rn=r.roundNumber||0; const gr = rs.find(x=> (x?.roundNumber||0)===rn) || rs[rn-1] || null; if(!gr) continue;
+        const t1Score = Number(gr.team1Score||0);
+        const t2Score = Number(gr.team2Score||0);
+        const pts = Number(gr.pointsScored||0);
+        const scoredLeft = pts>0 && gr.scoringTeam === g?.teams?.team1?.id;
+        const scoredRight= pts>0 && gr.scoringTeam === g?.teams?.team2?.id;
+        const row = document.createElement('div'); row.className = `round-row ${scoredLeft?'scored-left': (scoredRight?'scored-right':'')}`;
+        const t1Tosser = gr.team1TosserName || (players[gr.team1TosserId]?.name) || '';
+        const t2Tosser = gr.team2TosserName || (players[gr.team2TosserId]?.name) || '';
+        const showTossers = (g?.gameType || '') !== '1v1';
+        const deltaLeft = scoredLeft? ` <span class=\"delta scored\">+${pts}</span>`:'';
+        const deltaRight= scoredRight? ` <span class=\"delta scored\">+${pts}</span>`:'';
+        const ts = Number(r.timestamp || gr.timestamp || 0);
+        const dur = (prevTs && ts)? Math.max(0, ts - prevTs): 0; prevTs = ts; const m = Math.floor(dur/60), s = (dur%60).toString().padStart(2,'0');
+        const switchIcon = pts===0 ? '↔' : '';
+        row.innerHTML = `
+          <div class=\"top\">
+            <div class=\"score left\">${showTossers && t1Tosser? `<span class=\\\"tosser\\\">${t1Tosser} -</span>`:''}<span class=\"total\">${t1Score}</span>${deltaLeft}</div>
+            <div class=\"round-center\"><div class=\"num\">${switchIcon || rn}</div><div class=\"duration\">${m}:${s}</div></div>
+            <div class=\"score right\">${deltaRight}<span class=\"total\">${t2Score}</span>${showTossers && t2Tosser? `<span class=\\\"tosser\\\">- ${t2Tosser}</span>`:''}</div>
+          </div>`;
+        const bottom = document.createElement('div');
+        const isPro = g?.scoringMode === 'teamAttempts';
+        if (isPro) {
+          bottom.className = 'bottom pro-stats';
+          const t1h = gr.team1AttemptsRaw?.holed ?? 0, t1b = gr.team1AttemptsRaw?.onBoard ?? 0;
+          const t2h = gr.team2AttemptsRaw?.holed ?? 0, t2b = gr.team2AttemptsRaw?.onBoard ?? 0;
+          bottom.innerHTML = `<div class=\"attempts left\">${scoredLeft? '<span class=\\\"star\\\">★</span>':''} ${t1h} holed, ${t1b} board</div><div class=\"attempts right\">${t2h} holed, ${t2b} board ${scoredRight? '<span class=\\\"star\\\">★</span>':''}</div>`;
+        } else {
+          bottom.className = 'bottom standard';
+          const holedCount = gr.waddieStats ? Object.values(gr.waddieStats).filter(ws=>ws?.holed).length : 0;
+          const centerText = pts===0 ? 'Switch' : (holedCount>0 ? `${holedCount} Holed` : 'Board');
+          bottom.innerHTML = `<div class=\"left\">${scoredLeft? '<span class=\\\"star\\\">★</span>':''} ${showTossers && t1Tosser? t1Tosser:''}</div><div class=\"center\">${centerText}</div><div class=\"right\">${showTossers && t2Tosser? t2Tosser:''} ${scoredRight? '<span class=\\\"star\\\">★</span>':''}</div>`;
+        }
+        row.appendChild(bottom);
+        roundsDiv.appendChild(row);
       }
     }
 
