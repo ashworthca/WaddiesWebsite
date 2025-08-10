@@ -40,6 +40,7 @@
 
     <div class="layout">
       <div class="panel">
+        <div id="playerStats" class="stats-grid" style="margin-bottom:0.75rem;"></div>
         <div class="toolbar">
           <label for="levelFilter">Level:</label>
           <select id="levelFilter">
@@ -50,7 +51,6 @@
         <ul id="gameList" class="game-list"></ul>
       </div>
       <div class="panel">
-        <div id="playerStats" class="stats-grid" style="margin-bottom:0.75rem;"></div>
         <div id="gameHeader" class="muted" style="margin:0.5rem 0 0.5rem;"></div>
         <div id="rounds"></div>
       </div>
@@ -158,7 +158,8 @@
     function showGame(pid, entry){
       const g = games[entry.gameId]; const rs = roundsArr(g);
       const pm = prettyMatchup(pid, g);
-      el('gameHeader').textContent = `${pm.title} · ${pm.score} · ${new Date((g?.date||0)*1000).toLocaleString()}`;
+      // build richer header with named teams
+      el('gameHeader').innerHTML = `<strong>${pm.title}</strong> <span class="badge">${pm.score}</span> · ${new Date((g?.date||0)*1000).toLocaleString()}`;
       const roundsDiv = el('rounds'); roundsDiv.innerHTML='';
       // join by roundNumber
       for(const r of entry.rounds){
