@@ -14,12 +14,36 @@
     .layout { display:grid; grid-template-columns: 360px 1fr; gap: 1rem; }
     .panel { background:#fff; border-radius:12px; box-shadow:0 1px 3px rgba(0,0,0,0.1); padding:1rem; }
     .game-list { list-style:none; padding:0; margin:0; max-height:70vh; overflow:auto; }
-    .game-item { padding:0.75rem 0.9rem; border-bottom:1px solid #eee; cursor:pointer; display:flex; flex-direction:column; gap:2px; }
+    .game-item { padding:0.75rem 0.9rem; border-bottom:1px solid #eee; cursor:pointer; }
     .game-item:hover, .game-item.active { background:#f0f6ff; }
-    .line1 { font-weight:600; color:#1a1a1a; }
-    .line2 { font-size:0.9rem; color:#666; display:flex; gap:8px; align-items:center; }
+    .game-row { display:flex; flex-direction:column; gap:8px; }
+    .row-header { display:flex; gap:8px; align-items:center; color:#666; font-size:0.85rem; flex-wrap:wrap; }
     .badge { background:#eef2f7; color:#40576b; font-size:0.75rem; padding:2px 6px; border-radius:999px; }
-    .round { padding:0.5rem 0; border-bottom:1px dashed #eee; }
+    .badge-type { background:#e8f3ff; color:#0b5cab; }
+    .badge-warn { background:#fff4e5; color:#8a5a00; }
+    .icon { opacity:0.8; }
+    .row-main { display:grid; grid-template-columns: 1fr 56px 1fr; gap:16px; align-items:center; }
+    .team { display:grid; grid-template-rows: auto auto auto; row-gap:2px; }
+    .team .name { font-weight:700; color:#1a1a1a; line-height:1.2; }
+    .team .players { font-size:0.85rem; color:#666; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .team .sub { font-size:0.9rem; color:#40576b; }
+    .team.my .name { font-weight:800; }
+    .vs { display:flex; align-items:center; justify-content:center; color:#888; font-weight:700; }
+    .winner { color:#0a7d33; font-size:0.85rem; }
+    /* Round rows */
+    .round-row { padding:10px 12px; border-bottom:1px solid #eee; border-radius:8px; }
+    .round-row.scored-left { background: #f3fff6; }
+    .round-row.scored-right { background: #f3fff6; }
+    .round-row .top { display:grid; grid-template-columns: 1fr 120px 1fr; align-items:center; column-gap:12px; }
+    .score { display:grid; grid-auto-flow:column; grid-auto-columns:min-content; gap:6px; align-items:center; }
+    .score .total { font-weight:700; }
+    .score .delta.scored { color:#0a7d33; font-weight:700; }
+    .round-center { display:grid; justify-items:center; }
+    .round-center .num { font-weight:700; }
+    .round-center .duration { font-size:0.8rem; color:#666; }
+    .bottom { display:grid; grid-template-columns: 1fr 1fr; gap:12px; margin-top:6px; font-size:0.9rem; color:#444; align-items:center; }
+    .bottom .star { color:#f5a623; margin-right:4px; }
+    .mono { font-variant-numeric: tabular-nums; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', monospace; }
     .stats-grid { display:grid; grid-template-columns: repeat(auto-fit, minmax(160px,1fr)); gap:0.75rem; }
     .stat-card { background:#f8f9fa; border-radius:8px; padding:0.75rem; text-align:center; }
     .stat-value { font-weight:700; font-size:1.2rem; color:#0070c9; }
@@ -190,13 +214,13 @@
               <div class=\"team left ${mineKey==='team1'?'my':''}\">
                 <div class=\"name\">${teamNames(g,'team1') || 'Team 1'}</div>
                 <div class=\"players\">${t1Players}</div>
-                <div class=\"sub\">${g?.teams?.team1?.score ?? ''} points</div>
+                <div class=\"sub\"><span class=\"mono\">${g?.teams?.team1?.score ?? ''}</span> points</div>
               </div>
               <div class=\"vs\">VS</div>
               <div class=\"team right ${mineKey==='team2'?'my':''}\">
                 <div class=\"name\">${teamNames(g,'team2') || 'Team 2'}</div>
                 <div class=\"players\">${t2Players}</div>
-                <div class=\"sub\">${g?.teams?.team2?.score ?? ''} points</div>
+                <div class=\"sub\"><span class=\"mono\">${g?.teams?.team2?.score ?? ''}</span> points</div>
               </div>
             </div>
             ${g?.winner?.players ? `<div class=\"winner\">Winners: ${Object.keys(g.winner.players).map(id=> players[id]?.name || id.substring(0,6)).join(', ')}</div>`:''}
@@ -229,12 +253,12 @@
         const deltaLeft = scoredLeft? ` <span class=\"delta scored\">+${pts}</span>`:'';
         const deltaRight= scoredRight? ` <span class=\"delta scored\">+${pts}</span>`:'';
         const ts = Number(r.timestamp || gr.timestamp || 0);
-        const dur = (prevTs && ts)? Math.max(0, ts - prevTs): 0; prevTs = ts; const m = Math.floor(dur/60), s = (dur%60).toString().padStart(2,'0');
+        const dur = (prevTs && ts)? Math.max(0, ts - prevTs): 0; prevTs = ts; const m = Math.floor(dur/60), s = Math.floor(dur%60).toString().padStart(2,'0');
         const switchIcon = pts===0 ? '↔' : '';
         row.innerHTML = `
           <div class=\"top\">
             <div class=\"score left\">${showTossers && t1Tosser? `<span class=\\\"tosser\\\">${t1Tosser} -</span>`:''}<span class=\"total\">${t1Score}</span>${deltaLeft}</div>
-            <div class=\"round-center\"><div class=\"num\">${switchIcon || rn}</div><div class=\"duration\">${m}:${s}</div></div>
+            <div class=\"round-center\"><div class=\"num\">${switchIcon || rn}</div><div class=\"duration mono\">${m}:${s}</div></div>
             <div class=\"score right\">${deltaRight}<span class=\"total\">${t2Score}</span>${showTossers && t2Tosser? `<span class=\\\"tosser\\\">- ${t2Tosser}</span>`:''}</div>
           </div>`;
         const bottom = document.createElement('div');
