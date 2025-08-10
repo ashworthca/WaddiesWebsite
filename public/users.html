@@ -267,7 +267,10 @@
           bottom.className = 'bottom pro-stats';
           const t1h = gr.team1AttemptsRaw?.holed ?? 0, t1b = gr.team1AttemptsRaw?.onBoard ?? 0;
           const t2h = gr.team2AttemptsRaw?.holed ?? 0, t2b = gr.team2AttemptsRaw?.onBoard ?? 0;
-          bottom.innerHTML = `<div class=\"attempts left\">${scoredLeft? '<span class=\\\"star\\\">★</span>':''} ${t1h} holed, ${t1b} board</div><div class=\"attempts right\">${t2h} holed, ${t2b} board ${scoredRight? '<span class=\\\"star\\\">★</span>':''}</div>`;
+          bottom.innerHTML = `
+            <div class=\"attempts left\">${scoredLeft? '<span class=\\\"star\\\">★</span> ':''}${t1Tosser ? `${t1Tosser} — ` : ''}${t1h} holed, ${t1b} board</div>
+            <div class=\"attempts right\">${scoredRight? '<span class=\\\"star\\\">★</span> ':''}${t2Tosser ? `${t2Tosser} — ` : ''}${t2h} holed, ${t2b} board</div>
+          `;
         } else {
           bottom.className = 'bottom standard';
           const holedCount = gr.waddieStats ? Object.values(gr.waddieStats).filter(ws=>ws?.holed).length : 0;
