@@ -307,7 +307,8 @@
                             console.log('Games data loaded:', snapshot.exists());
                             return snapshot;
                         }),
-                        db.ref('/player_rounds').once('value').then(snapshot => {
+                        // NOTE: path uses hyphen per your rules (player-rounds)
+                        db.ref('/player-rounds').once('value').then(snapshot => {
                             console.log('Player rounds data loaded:', snapshot.exists());
                             return snapshot;
                         })
@@ -316,7 +317,7 @@
                         window.gamesData = gamesSnapshot.val() || {};
                         window.playerRoundsData = roundsSnapshot.val() || {};
                         console.log('All data loaded successfully');
-                        console.log('Players:', Object.keys(playersData).length);
+                        console.log('Players:', Object.keys(window.playersData || {}).length);
                         console.log('Games:', Object.keys(window.gamesData || {}).length);
                         console.log('Player Rounds:', Object.keys(window.playerRoundsData || {}).length);
                         document.getElementById('loadingIndicator').style.display = 'none';
@@ -544,6 +545,20 @@
                 });
 
             return totalRounds > 0 ? totalPoints / totalRounds : 0;
+        }
+
+        function calculatePointsScored(playerId, dateRange, gameType) {
+            // Sum of per-round scores for this player across filtered games
+            let total = 0;
+            getPlayerGames(playerId)
+                .filter(game => filterByDateRange(game.date, dateRange))
+                .filter(game => filterByGameType(game.gameType, gameType))
+                .filter(game => game.isValid && !game.noStats)
+                .forEach(game => {
+                    const rounds = getPlayerRounds(playerId, game.id);
+                    total += rounds.reduce((sum, round) => sum + (round?.score || 0), 0);
+                });
+            return total;
         }
 
         function calculateBestRound(playerId) {
