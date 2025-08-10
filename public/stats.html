@@ -270,7 +270,8 @@
             let currentSort = { column: 'wins', direction: 'desc' };
             const modal = document.getElementById('playerModal');
             const closeModal = document.querySelector('.close-modal');
-            let playerChart = null;
+            // use a distinct global name to avoid clashing with DOM id
+            window.playerChartInstance = null;
 
             // Close modal when clicking the close button or outside the modal
             closeModal.onclick = () => modal.style.display = 'none';
@@ -473,15 +474,24 @@
         function getPlayerGames(playerId) {
             const allGames = window.gamesData || {};
             return Object.values(allGames).filter(game => {
-                const playerInTeam1 = game.team1Players && game.team1Players.includes(playerId);
-                const playerInTeam2 = game.team2Players && game.team2Players.includes(playerId);
+                // Support both schema variants: nested teams or flat team1Players/team2Players arrays
+                const team1Players = game.teams?.team1?.players ? Object.keys(game.teams.team1.players) : game.team1Players;
+                const team2Players = game.teams?.team2?.players ? Object.keys(game.teams.team2.players) : game.team2Players;
+                const playerInTeam1 = Array.isArray(team1Players) ? team1Players.includes(playerId) : !!team1Players?.[playerId];
+                const playerInTeam2 = Array.isArray(team2Players) ? team2Players.includes(playerId) : !!team2Players?.[playerId];
                 return playerInTeam1 || playerInTeam2;
             });
         }
 
         function getPlayerRounds(playerId, gameId) {
-            const playerRounds = (window.playerRoundsData && window.playerRoundsData[playerId]) || {};
-            return playerRounds[gameId]?.rounds || [];
+            const playerRoundsRoot = window.playerRoundsData || {};
+            // player-rounds path is nested by playerId then gameId
+            const playerNode = playerRoundsRoot[playerId] || {};
+            const gameNode = playerNode[gameId] || {};
+            // rounds may be an array-like object keyed by indices; convert to array, skip nulls/index 0
+            const roundsObj = gameNode.rounds || {};
+            const roundsArr = Array.isArray(roundsObj) ? roundsObj : Object.values(roundsObj);
+            return roundsArr.filter(Boolean);
         }
 
         function calculateWins(playerId, dateRange, gameType) {
@@ -489,7 +499,10 @@
                 .filter(game => filterByDateRange(game.date, dateRange))
                 .filter(game => filterByGameType(game.gameType, gameType))
                 .filter(game => game.isValid && !game.noStats)
-                .reduce((wins, game) => wins + (game.isWin ? 1 : 0), 0);
+                .reduce((wins, game) => {
+                    // if schema uses meta.isWin inside player-rounds, fallback later
+                    return wins + (game.isWin ? 1 : 0);
+                }, 0);
         }
 
         function calculateLosses(playerId, dateRange, gameType) {
@@ -647,11 +660,11 @@
 
         function updatePlayerChart(player) {
             const ctx = document.getElementById('playerChart');
-            if (playerChart) {
-                playerChart.destroy();
+            if (window.playerChartInstance && typeof window.playerChartInstance.destroy === 'function') {
+                window.playerChartInstance.destroy();
             }
 
-            playerChart = new Chart(ctx, {
+            window.playerChartInstance = new Chart(ctx, {
                 type: 'line',
                 data: {
                     labels: ['Game 1', 'Game 2', 'Game 3', 'Game 4', 'Game 5'], // Replace with actual game dates
