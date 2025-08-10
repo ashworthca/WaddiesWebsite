@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Waddies - Player Statistics</title>
+    <!-- Firebase SDK -->
+    <script defer src="/__/firebase/10.8.0/firebase-app-compat.js"></script>
+    <script defer src="/__/firebase/10.8.0/firebase-database-compat.js"></script>
+    <script defer src="/__/firebase/init.js?useEmulator=false"></script>
+    <!-- Chart.js for statistics visualization -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 0;
+            color: #333;
+            background-color: #f5f5f7;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem 1rem;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+        .filters {
+            background: white;
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 2rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        .filter-group {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1rem;
+            align-items: center;
+        }
+        .filter-group label {
+            min-width: 100px;
+        }
+        .filter-group select, .filter-group input {
+            padding: 0.5rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            flex: 1;
+        }
+        .stats-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        .stats-table th, .stats-table td {
+            padding: 1rem;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+        }
+        .stats-table th {
+            background: #f8f9fa;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        .stats-table th:hover {
+            background: #e9ecef;
+        }
+        .stats-table tr:last-child td {
+            border-bottom: none;
+        }
+        .stats-table tbody tr:hover {
+            background: #f8f9fa;
+        }
+        .player-name {
+            color: #0070c9;
+            text-decoration: none;
+            font-weight: 500;
+        }
+        .player-name:hover {
+            text-decoration: underline;
+        }
+        .loading {
+            text-align: center;
+            padding: 2rem;
+            font-size: 1.2rem;
+            color: #666;
+        }
+        .error {
+            background: #fee;
+            color: #c00;
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+        }
+        .footer {
+            text-align: center;
+            margin-top: 3rem;
+            padding-top: 2rem;
+            border-top: 1px solid #ddd;
+        }
+        .footer a {
+            color: #0070c9;
+            text-decoration: none;
+            margin: 0 1rem;
+        }
+        .footer a:hover {
+            text-decoration: underline;
+        }
+        /* Modal styles for player details */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+        }
+        .modal-content {
+            position: relative;
+            background: white;
+            margin: 2rem auto;
+            padding: 2rem;
+            max-width: 800px;
+            max-height: 90vh;
+            overflow-y: auto;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .close-modal {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: #666;
+        }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin: 1rem 0;
+        }
+        .stat-card {
+            background: #f8f9fa;
+            padding: 1rem;
+            border-radius: 8px;
+            text-align: center;
+        }
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 600;
+            color: #0070c9;
+        }
+        .stat-label {
+            color: #666;
+            font-size: 0.9rem;
+        }
+        .chart-container {
+            margin: 2rem 0;
+            height: 300px;
+        }
+        .matches-list {
+            margin-top: 2rem;
+        }
+        .match-item {
+            padding: 1rem;
+            border: 1px solid #eee;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            cursor: pointer;
+        }
+        .match-item:hover {
+            background: #f8f9fa;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Player Statistics</h1>
+        </div>
+
+        <div class="filters">
+            <div class="filter-group">
+                <label for="dateRange">Date Range:</label>
+                <select id="dateRange">
+                    <option value="all">All Time</option>
+                    <option value="month">Last Month</option>
+                    <option value="3months">Last 3 Months</option>
+                    <option value="year">Last Year</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label for="gameType">Game Type:</label>
+                <select id="gameType">
+                    <option value="all">All Games</option>
+                    <option value="1v1">1v1</option>
+                    <option value="2v2">2v2</option>
+                </select>
+            </div>
+        </div>
+
+        <table class="stats-table">
+            <thead>
+                <tr>
+                    <th data-sort="name">Player Name ↕</th>
+                    <th data-sort="wins">Wins ↕</th>
+                    <th data-sort="losses">Losses ↕</th>
+                    <th data-sort="totalGames">Total Games ↕</th>
+                    <th data-sort="pointsScored">Points Scored ↕</th>
+                    <th data-sort="scoringPercent">Scoring % ↕</th>
+                    <th data-sort="closingPercent">Closing % (18+) ↕</th>
+                </tr>
+            </thead>
+            <tbody id="statsTableBody">
+                <!-- Data will be populated here -->
+            </tbody>
+        </table>
+
+        <!-- Player Details Modal -->
+        <div id="playerModal" class="modal">
+            <div class="modal-content">
+                <span class="close-modal">&times;</span>
+                <h2 id="modalPlayerName"></h2>
+                <div class="stats-grid" id="modalStats">
+                    <!-- Player stats will be populated here -->
+                </div>
+                <div class="chart-container">
+                    <canvas id="playerChart"></canvas>
+                </div>
+                <div class="matches-list" id="playerMatches">
+                    <!-- Match history will be populated here -->
+                </div>
+            </div>
+        </div>
+
+        <div class="footer">
+            <a href="index.html">Home</a>
+            <a href="marketing.html">About</a>
+            <a href="privacypolicy.html">Privacy Policy</a>
+            <a href="termsandconditions.html">Terms & Conditions</a>
+        </div>
+    </div>
+
+    <script>
+        // Initialize Firebase and load data
+        document.addEventListener('DOMContentLoaded', function() {
+            let playersData = {};
+            let currentSort = { column: 'wins', direction: 'desc' };
+            const modal = document.getElementById('playerModal');
+            const closeModal = document.querySelector('.close-modal');
+            let playerChart = null;
+
+            // Close modal when clicking the close button or outside the modal
+            closeModal.onclick = () => modal.style.display = 'none';
+            window.onclick = (e) => {
+                if (e.target === modal) modal.style.display = 'none';
+            };
+
+            // Initialize Firebase and load data
+            firebase.initializeApp({
+                // Firebase will auto-populate config from __/firebase/init.js
+            });
+
+            // Load and display player statistics
+            function loadPlayerStats() {
+                const dbRef = firebase.database().ref('/players');
+                dbRef.once('value').then((snapshot) => {
+                    playersData = snapshot.val() || {};
+                    updateTable();
+                }).catch((error) => {
+                    console.error('Error loading player data:', error);
+                    document.querySelector('.stats-table').insertAdjacentHTML('beforebegin', 
+                        '<div class="error">Error loading player statistics. Please try again later.</div>');
+                });
+            }
+
+            // Update table with current filters and sorting
+            function updateTable() {
+                const tbody = document.getElementById('statsTableBody');
+                const dateRange = document.getElementById('dateRange').value;
+                const gameType = document.getElementById('gameType').value;
+
+                // Convert players data to array for sorting
+                let players = Object.entries(playersData).map(([id, data]) => ({
+                    id,
+                    name: data.name,
+                    wins: calculateWins(data, dateRange, gameType),
+                    losses: calculateLosses(data, dateRange, gameType),
+                    totalGames: calculateTotalGames(data, dateRange, gameType),
+                    pointsScored: calculatePointsScored(data, dateRange, gameType),
+                    scoringPercent: calculateScoringPercent(data, dateRange, gameType),
+                    closingPercent: calculateClosingPercent(data, dateRange, gameType)
+                }));
+
+                // Sort players
+                players.sort((a, b) => {
+                    const direction = currentSort.direction === 'asc' ? 1 : -1;
+                    return (a[currentSort.column] - b[currentSort.column]) * direction;
+                });
+
+                // Generate table HTML
+                tbody.innerHTML = players.map(player => `
+                    <tr>
+                        <td><a href="#" class="player-name" data-player-id="${player.id}">${player.name}</a></td>
+                        <td>${player.wins}</td>
+                        <td>${player.losses}</td>
+                        <td>${player.totalGames}</td>
+                        <td>${player.pointsScored}</td>
+                        <td>${player.scoringPercent.toFixed(1)}%</td>
+                        <td>${player.closingPercent.toFixed(1)}%</td>
+                    </tr>
+                `).join('');
+
+                // Add click handlers for player names
+                document.querySelectorAll('.player-name').forEach(link => {
+                    link.onclick = (e) => {
+                        e.preventDefault();
+                        showPlayerDetails(link.dataset.playerId);
+                    };
+                });
+            }
+
+            // Show detailed player statistics in modal
+            function showPlayerDetails(playerId) {
+                const player = playersData[playerId];
+                if (!player) return;
+
+                document.getElementById('modalPlayerName').textContent = player.name;
+                
+                // Update stats grid
+                const statsGrid = document.getElementById('modalStats');
+                statsGrid.innerHTML = `
+                    <div class="stat-card">
+                        <div class="stat-value">${player.wins || 0}</div>
+                        <div class="stat-label">Wins</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">${player.losses || 0}</div>
+                        <div class="stat-label">Losses</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">${calculateWinPercent(player).toFixed(1)}%</div>
+                        <div class="stat-label">Win Rate</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">${calculateAveragePoints(player).toFixed(1)}</div>
+                        <div class="stat-label">Avg Points/Game</div>
+                    </div>
+                `;
+
+                // Update chart
+                updatePlayerChart(player);
+
+                // Show match history
+                updateMatchHistory(player);
+
+                modal.style.display = 'block';
+            }
+
+            // Initialize event listeners
+            document.querySelectorAll('.stats-table th').forEach(th => {
+                th.onclick = () => {
+                    const column = th.dataset.sort;
+                    if (currentSort.column === column) {
+                        currentSort.direction = currentSort.direction === 'asc' ? 'desc' : 'asc';
+                    } else {
+                        currentSort.column = column;
+                        currentSort.direction = 'desc';
+                    }
+                    updateTable();
+                };
+            });
+
+            document.getElementById('dateRange').onchange = updateTable;
+            document.getElementById('gameType').onchange = updateTable;
+
+            // Load initial data
+            loadPlayerStats();
+        });
+
+        // Calculation helper functions
+        function calculateWins(player, dateRange, gameType) {
+            // Implement win calculation logic based on filters
+            return player.wins || 0;
+        }
+
+        function calculateLosses(player, dateRange, gameType) {
+            // Implement loss calculation logic based on filters
+            return player.losses || 0;
+        }
+
+        function calculateTotalGames(player, dateRange, gameType) {
+            // Implement total games calculation logic based on filters
+            return (player.wins || 0) + (player.losses || 0);
+        }
+
+        function calculatePointsScored(player, dateRange, gameType) {
+            // Implement points scored calculation logic based on filters
+            return player.pointsScored || 0;
+        }
+
+        function calculateScoringPercent(player, dateRange, gameType) {
+            // Implement scoring percentage calculation logic based on filters
+            return player.scoringPercent || 0;
+        }
+
+        function calculateClosingPercent(player, dateRange, gameType) {
+            // Implement closing percentage calculation logic based on filters
+            return player.closingPercent || 0;
+        }
+
+        function calculateWinPercent(player) {
+            const totalGames = (player.wins || 0) + (player.losses || 0);
+            return totalGames > 0 ? (player.wins || 0) / totalGames * 100 : 0;
+        }
+
+        function calculateAveragePoints(player) {
+            const totalGames = (player.wins || 0) + (player.losses || 0);
+            return totalGames > 0 ? (player.pointsScored || 0) / totalGames : 0;
+        }
+
+        function updatePlayerChart(player) {
+            const ctx = document.getElementById('playerChart');
+            if (playerChart) {
+                playerChart.destroy();
+            }
+
+            playerChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: ['Game 1', 'Game 2', 'Game 3', 'Game 4', 'Game 5'], // Replace with actual game dates
+                    datasets: [{
+                        label: 'Points per Game',
+                        data: [15, 18, 21, 17, 19], // Replace with actual point data
+                        borderColor: '#0070c9',
+                        tension: 0.1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Recent Performance'
+                        }
+                    }
+                }
+            });
+        }
+
+        function updateMatchHistory(player) {
+            const matchesList = document.getElementById('playerMatches');
+            matchesList.innerHTML = '<h3>Recent Matches</h3>';
+            
+            // Add match history items (implement based on your data structure)
+            matchesList.innerHTML += `
+                <div class="match-item">
+                    <div>vs. Opponent Name</div>
+                    <div>Score: 21-15</div>
+                    <div>Date: March 1, 2024</div>
+                </div>
+            `;
+        }
+    </script>
+</body>
+</html>
