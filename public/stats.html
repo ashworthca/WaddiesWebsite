@@ -299,40 +299,58 @@
                     const db = firebase.database();
                     
                     console.log('Loading data from RTDB...');
-                    Promise.all([
-                        db.ref('/players').once('value').then(snapshot => {
-                            console.log('Players data loaded:', snapshot.exists());
-                            return snapshot;
-                        }),
-                        db.ref('/games').once('value').then(snapshot => {
-                            console.log('Games data loaded:', snapshot.exists());
-                            return snapshot;
-                        }),
-                        // NOTE: path uses hyphen per your rules (player-rounds)
-                        db.ref('/player-rounds').once('value').then(snapshot => {
-                            console.log('Player rounds data loaded:', snapshot.exists());
-                            return snapshot;
+                    db.ref('/players').once('value')
+                        .then(async (playersSnapshot) => {
+                            window.playersData = playersSnapshot.val() || {};
+                            console.log('Players:', Object.keys(window.playersData).length);
+
+                            // Load player-rounds per player (requires rules to allow read)
+                            const playerIds = Object.keys(window.playersData);
+                            const roundsByPlayer = {};
+                            const gameIdSet = new Set();
+
+                            for (const pid of playerIds) {
+                                try {
+                                    const snap = await db.ref(`/player-rounds/${pid}`).once('value');
+                                    const val = snap.val() || {};
+                                    roundsByPlayer[pid] = val;
+                                    Object.keys(val).forEach(gid => gameIdSet.add(gid));
+                                } catch (e) {
+                                    console.warn('player-rounds read blocked for', pid, e?.code || e?.message);
+                                }
+                            }
+
+                            window.playerRoundsData = roundsByPlayer;
+                            console.log('Player Rounds players loaded:', Object.keys(window.playerRoundsData).length);
+
+                            // Load games individually by id (rules allow /games/$gameId even if /games root is blocked)
+                            const gameIds = Array.from(gameIdSet);
+                            const gamesData = {};
+                            await Promise.all(gameIds.map(async (gid) => {
+                                try {
+                                    const gsnap = await db.ref(`/games/${gid}`).once('value');
+                                    if (gsnap.exists()) gamesData[gid] = gsnap.val();
+                                } catch (e) {
+                                    console.warn('game read blocked for', gid, e?.code || e?.message);
+                                }
+                            }));
+
+                            window.gamesData = gamesData;
+                            console.log('Games loaded individually:', Object.keys(window.gamesData).length);
+
+                            document.getElementById('loadingIndicator').style.display = 'none';
+                            updateTable();
                         })
-                    ]).then(([playersSnapshot, gamesSnapshot, roundsSnapshot]) => {
-                        window.playersData = playersSnapshot.val() || {};
-                        window.gamesData = gamesSnapshot.val() || {};
-                        window.playerRoundsData = roundsSnapshot.val() || {};
-                        console.log('All data loaded successfully');
-                        console.log('Players:', Object.keys(window.playersData || {}).length);
-                        console.log('Games:', Object.keys(window.gamesData || {}).length);
-                        console.log('Player Rounds:', Object.keys(window.playerRoundsData || {}).length);
-                        document.getElementById('loadingIndicator').style.display = 'none';
-                        updateTable();
-                    }).catch((error) => {
-                        console.error('Error loading data:', error);
-                        let errorMessage = 'Error loading statistics: ' + error.message;
-                        if (error.code) {
-                            errorMessage += ' (Code: ' + error.code + ')';
-                        }
-                        document.getElementById('loadingIndicator').style.display = 'none';
-                        document.querySelector('.stats-table').insertAdjacentHTML('beforebegin', 
-                            `<div class="error">${errorMessage}</div>`);
-                    });
+                        .catch((error) => {
+                            console.error('Error loading data:', error);
+                            let errorMessage = 'Error loading statistics: ' + error.message;
+                            if (error.code) {
+                                errorMessage += ' (Code: ' + error.code + ')';
+                            }
+                            document.getElementById('loadingIndicator').style.display = 'none';
+                            document.querySelector('.stats-table').insertAdjacentHTML('beforebegin', 
+                                `<div class="error">${errorMessage}</div>`);
+                        });
                 } catch (error) {
                     console.error('Error initializing Firebase:', error);
                     document.getElementById('loadingIndicator').style.display = 'none';
@@ -402,40 +420,51 @@
                 if (!player) return;
 
                 document.getElementById('modalPlayerName').textContent = player.name;
+                // Recompute fresh from current globals to avoid stale zeros
+                const wins = calculateWins(playerId, document.getElementById('dateRange').value, document.getElementById('gameType').value);
+                const totalGames = calculateTotalGames(playerId, document.getElementById('dateRange').value, document.getElementById('gameType').value);
+                const winRate = totalGames > 0 ? (wins / totalGames) * 100 : 0;
+                const avgPtsPerRound = calculateAveragePointsPerRound(playerId);
+                const waddiesHoled = calculateWaddiesHoled(playerId);
+                const scoringRounds = calculateScoringRounds(playerId);
+                const bestRound = calculateBestRound(playerId);
+                const hammerPct = calculateHammerPercentage(playerId);
+                const firstPct = calculateShootingFirstPercentage(playerId);
+                const carryPct = calculateCarryPercentage(playerId);
                 
                 // Update stats grid
                 const statsGrid = document.getElementById('modalStats');
                 statsGrid.innerHTML = `
                     <div class="stat-card">
-                        <div class="stat-value">${calculateWinPercent(player).toFixed(1)}%</div>
+                        <div class="stat-value">${winRate.toFixed(1)}%</div>
                         <div class="stat-label">Win Rate</div>
                     </div>
                     <div class="stat-card">
-                        <div class="stat-value">${calculateAveragePointsPerRound(player).toFixed(1)}</div>
+                        <div class="stat-value">${avgPtsPerRound.toFixed(1)}</div>
                         <div class="stat-label">Avg Points/Round</div>
                     </div>
                     <div class="stat-card">
-                        <div class="stat-value">${calculateWaddiesHoled(player)}</div>
+                        <div class="stat-value">${waddiesHoled}</div>
                         <div class="stat-label">Waddies Holed</div>
                     </div>
                     <div class="stat-card">
-                        <div class="stat-value">${calculateBestRound(player)} pts</div>
+                        <div class="stat-value">${bestRound} pts</div>
                         <div class="stat-label">Best Round</div>
                     </div>
                     <div class="stat-card">
-                        <div class="stat-value">${calculateScoringRounds(player)}</div>
+                        <div class="stat-value">${scoringRounds}</div>
                         <div class="stat-label">Scoring Rounds</div>
                     </div>
                     <div class="stat-card">
-                        <div class="stat-value">${calculateHammerPercentage(player).toFixed(1)}%</div>
+                        <div class="stat-value">${hammerPct.toFixed(1)}%</div>
                         <div class="stat-label">With Hammer</div>
                     </div>
                     <div class="stat-card">
-                        <div class="stat-value">${calculateShootingFirstPercentage(player).toFixed(1)}%</div>
+                        <div class="stat-value">${firstPct.toFixed(1)}%</div>
                         <div class="stat-label">Shooting First</div>
                     </div>
                     <div class="stat-card">
-                        <div class="stat-value">${calculateCarryPercentage(player).toFixed(1)}%</div>
+                        <div class="stat-value">${carryPct.toFixed(1)}%</div>
                         <div class="stat-label">Carry %</div>
                     </div>
                 `;
