@@ -554,6 +554,35 @@
             return { teamId: null, teamIndex: null };
         }
 
+        function computeHammerSeries(game) {
+            if (!game || !game.teams) return [];
+            const rounds = getGameRoundsArray(game);
+            const t1 = game.teams.team1?.id;
+            const t2 = game.teams.team2?.id;
+            if (!t1 || !t2 || rounds.length === 0) return [];
+
+            function simulate(initialHammer) {
+                let hammer = initialHammer;
+                const perRound = [];
+                for (const r of rounds) {
+                    const pts = Number(r?.pointsScored || 0);
+                    const scoringTeam = r?.scoringTeam || null;
+                    if (pts === 0 && scoringTeam && scoringTeam !== hammer) {
+                        return null; // invalid under assumptions
+                    }
+                    perRound.push(hammer);
+                    if (pts > 0 && scoringTeam) {
+                        hammer = scoringTeam; // scoring team gets next hammer
+                    } else {
+                        hammer = hammer === t1 ? t2 : t1; // wash flips hammer
+                    }
+                }
+                return perRound;
+            }
+
+            return simulate(t1) || simulate(t2) || simulate(t1) || [];
+        }
+
         function computeAttributionForEntry(playerId, entry) {
             const game = getGameById(entry.gameId);
             const rounds = entry.rounds || [];
@@ -683,41 +712,61 @@
         }
 
         function calculateHammerPercentage(playerId) {
-            let hammerRounds = 0;
-            let hammerScoringRounds = 0;
-
-            getPlayerGames(playerId)
-                .filter(game => game.isValid && !game.noStats)
-                .forEach(game => {
-                    const rounds = getPlayerRounds(playerId, game.id);
-                    rounds.forEach(round => {
-                        if (round?.isHammer) {
-                            hammerRounds++;
-                            if (round.score > 0) hammerScoringRounds++;
-                        }
-                    });
-                });
-
-            return hammerRounds > 0 ? (hammerScoringRounds / hammerRounds) * 100 : 0;
+            // Player-level: among rounds the player tossed, % where player tossed with hammer and scored (attributed)
+            let denom = 0;
+            let numer = 0;
+            const entries = getPlayerGameEntries(playerId).filter(e => e.meta && e.meta.isValid);
+            for (const e of entries) {
+                const game = getGameById(e.gameId);
+                const gameRounds = getGameRoundsArray(game);
+                const hammerByRound = computeHammerSeries(game);
+                const { teamId, teamIndex } = getPlayerTeamInfo(playerId, game);
+                if (!teamId || hammerByRound.length === 0) continue;
+                for (const r of e.rounds) {
+                    const rn = r.roundNumber || 0;
+                    const gr = gameRounds.find(grr => (grr?.roundNumber || 0) === rn) || gameRounds[rn - 1] || null;
+                    if (!gr) continue;
+                    const iTossed = (teamIndex === 1) ? (gr.team1TosserId === playerId) : (gr.team2TosserId === playerId);
+                    if (!iTossed) continue;
+                    const hadHammer = (hammerByRound[rn - 1] === teamId);
+                    if (!hadHammer) continue;
+                    denom += 1;
+                    const per = Number(r.score || 0);
+                    const teamScored = Number(gr.pointsScored || 0) > 0 && gr.scoringTeam === teamId;
+                    const attributed = per > 0 ? per : (iTossed && teamScored ? Number(gr.pointsScored || 0) : 0);
+                    if (attributed > 0) numer += 1;
+                }
+            }
+            return denom > 0 ? (numer / denom) * 100 : 0;
         }
 
         function calculateShootingFirstPercentage(playerId) {
-            let firstShootRounds = 0;
-            let firstShootScoringRounds = 0;
-
-            getPlayerGames(playerId)
-                .filter(game => game.isValid && !game.noStats)
-                .forEach(game => {
-                    const rounds = getPlayerRounds(playerId, game.id);
-                    rounds.forEach(round => {
-                        if (!round?.isHammer) {
-                            firstShootRounds++;
-                            if (round.score > 0) firstShootScoringRounds++;
-                        }
-                    });
-                });
-
-            return firstShootRounds > 0 ? (firstShootScoringRounds / firstShootRounds) * 100 : 0;
+            // Player-level: among rounds the player tossed, % where player tossed first (no hammer) and scored (attributed)
+            let denom = 0;
+            let numer = 0;
+            const entries = getPlayerGameEntries(playerId).filter(e => e.meta && e.meta.isValid);
+            for (const e of entries) {
+                const game = getGameById(e.gameId);
+                const gameRounds = getGameRoundsArray(game);
+                const hammerByRound = computeHammerSeries(game);
+                const { teamId, teamIndex } = getPlayerTeamInfo(playerId, game);
+                if (!teamId || hammerByRound.length === 0) continue;
+                for (const r of e.rounds) {
+                    const rn = r.roundNumber || 0;
+                    const gr = gameRounds.find(grr => (grr?.roundNumber || 0) === rn) || gameRounds[rn - 1] || null;
+                    if (!gr) continue;
+                    const iTossed = (teamIndex === 1) ? (gr.team1TosserId === playerId) : (gr.team2TosserId === playerId);
+                    if (!iTossed) continue;
+                    const shootsFirst = (hammerByRound[rn - 1] !== teamId);
+                    if (!shootsFirst) continue;
+                    denom += 1;
+                    const per = Number(r.score || 0);
+                    const teamScored = Number(gr.pointsScored || 0) > 0 && gr.scoringTeam === teamId;
+                    const attributed = per > 0 ? per : (iTossed && teamScored ? Number(gr.pointsScored || 0) : 0);
+                    if (attributed > 0) numer += 1;
+                }
+            }
+            return denom > 0 ? (numer / denom) * 100 : 0;
         }
 
         function calculateCarryPercentage(playerId) {
