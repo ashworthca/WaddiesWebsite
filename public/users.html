@@ -28,6 +28,8 @@
     a { color:#0070c9; text-decoration:none; }
     a:hover { text-decoration:underline; }
     .toolbar { display:flex; gap:0.5rem; align-items:center; margin-bottom:0.75rem; }
+    .section-title { font-weight:700; color:#1a1a1a; margin:0 0 0.5rem; }
+    .divider { height:1px; background:#eee; margin:0.5rem 0 0.5rem; }
     select { padding:0.4rem 0.5rem; border:1px solid #ddd; border-radius:6px; }
   </style>
 </head>
@@ -38,9 +40,16 @@
       <div class="muted"><a href="index.html">Home</a> · <a href="stats.html">Stats</a></div>
     </div>
 
+    <!-- Overall stats area -->
+    <div class="panel" style="margin-bottom:1rem;">
+      <div class="section-title">Overall Stats</div>
+      <div id="playerStats" class="stats-grid"></div>
+    </div>
+
+    <!-- Games + Details area -->
     <div class="layout">
       <div class="panel">
-        <div id="playerStats" class="stats-grid" style="margin-bottom:0.75rem;"></div>
+        <div class="section-title">Games</div>
         <div class="toolbar">
           <label for="levelFilter">Level:</label>
           <select id="levelFilter">
@@ -51,7 +60,8 @@
         <ul id="gameList" class="game-list"></ul>
       </div>
       <div class="panel">
-        <div id="gameHeader" class="muted" style="margin:0.5rem 0 0.5rem;"></div>
+        <div class="section-title">Game Details</div>
+        <div id="gameHeader" class="muted" style="margin:0.25rem 0 0.5rem;"></div>
         <div id="rounds"></div>
       </div>
     </div>
