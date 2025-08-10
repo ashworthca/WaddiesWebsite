@@ -317,8 +317,8 @@
                         window.playerRoundsData = roundsSnapshot.val() || {};
                         console.log('All data loaded successfully');
                         console.log('Players:', Object.keys(playersData).length);
-                        console.log('Games:', Object.keys(gamesData).length);
-                        console.log('Player Rounds:', Object.keys(playerRoundsData).length);
+                        console.log('Games:', Object.keys(window.gamesData || {}).length);
+                        console.log('Player Rounds:', Object.keys(window.playerRoundsData || {}).length);
                         document.getElementById('loadingIndicator').style.display = 'none';
                         updateTable();
                     }).catch((error) => {
@@ -346,7 +346,7 @@
                 const gameType = document.getElementById('gameType').value;
 
                 // Convert players data to array for sorting
-                let players = Object.entries(window.playersData).map(([id, data]) => ({
+                let players = Object.entries(window.playersData || {}).map(([id, data]) => ({
                     id,
                     name: data.name,
                     wins: calculateWins(id, dateRange, gameType),
@@ -396,7 +396,7 @@
 
             // Show detailed player statistics in modal
             function showPlayerDetails(playerId) {
-                const player = window.playersData[playerId];
+                const player = (window.playersData && window.playersData[playerId]) || null;
                 if (!player) return;
 
                 document.getElementById('modalPlayerName').textContent = player.name;
@@ -470,7 +470,8 @@
 
         // Calculation helper functions
         function getPlayerGames(playerId) {
-            return Object.values(window.gamesData || {}).filter(game => {
+            const allGames = window.gamesData || {};
+            return Object.values(allGames).filter(game => {
                 const playerInTeam1 = game.team1Players && game.team1Players.includes(playerId);
                 const playerInTeam2 = game.team2Players && game.team2Players.includes(playerId);
                 return playerInTeam1 || playerInTeam2;
