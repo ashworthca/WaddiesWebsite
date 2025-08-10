@@ -216,8 +216,13 @@
                     <th data-sort="losses">Losses ↕</th>
                     <th data-sort="totalGames">Total Games ↕</th>
                     <th data-sort="pointsScored">Points Scored ↕</th>
-                    <th data-sort="scoringPercent">Scoring % ↕</th>
-                    <th data-sort="closingPercent">Closing % (18+) ↕</th>
+                    <th data-sort="avgPointsPerRound">Avg Pts/Round ↕</th>
+                    <th data-sort="waddiesHoled">Waddies Holed ↕</th>
+                    <th data-sort="scoringRounds">Scoring Rounds ↕</th>
+                    <th data-sort="bestRound">Best Round ↕</th>
+                    <th data-sort="hammerPercent">With Hammer % ↕</th>
+                    <th data-sort="shootingFirstPercent">Shooting First % ↕</th>
+                    <th data-sort="carryPercent">Carry % ↕</th>
                 </tr>
             </thead>
             <tbody id="statsTableBody">
@@ -254,6 +259,8 @@
         // Initialize Firebase and load data
         document.addEventListener('DOMContentLoaded', function() {
             let playersData = {};
+            let gamesData = {};
+            let playerRoundsData = {};
             let currentSort = { column: 'wins', direction: 'desc' };
             const modal = document.getElementById('playerModal');
             const closeModal = document.querySelector('.close-modal');
@@ -311,12 +318,17 @@
                 tbody.innerHTML = players.map(player => `
                     <tr>
                         <td><a href="#" class="player-name" data-player-id="${player.id}">${player.name}</a></td>
-                        <td>${player.wins}</td>
-                        <td>${player.losses}</td>
-                        <td>${player.totalGames}</td>
-                        <td>${player.pointsScored}</td>
-                        <td>${player.scoringPercent.toFixed(1)}%</td>
-                        <td>${player.closingPercent.toFixed(1)}%</td>
+                        <td>${calculateWins(player.id, dateRange, gameType)}</td>
+                        <td>${calculateLosses(player.id, dateRange, gameType)}</td>
+                        <td>${calculateTotalGames(player.id, dateRange, gameType)}</td>
+                        <td>${calculatePointsScored(player.id, dateRange, gameType)}</td>
+                        <td>${calculateAveragePointsPerRound(player.id).toFixed(1)}</td>
+                        <td>${calculateWaddiesHoled(player.id)}</td>
+                        <td>${calculateScoringRounds(player.id)}</td>
+                        <td>${calculateBestRound(player.id)}</td>
+                        <td>${calculateHammerPercentage(player.id).toFixed(1)}%</td>
+                        <td>${calculateShootingFirstPercentage(player.id).toFixed(1)}%</td>
+                        <td>${calculateCarryPercentage(player.id).toFixed(1)}%</td>
                     </tr>
                 `).join('');
 
@@ -340,20 +352,36 @@
                 const statsGrid = document.getElementById('modalStats');
                 statsGrid.innerHTML = `
                     <div class="stat-card">
-                        <div class="stat-value">${player.wins || 0}</div>
-                        <div class="stat-label">Wins</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-value">${player.losses || 0}</div>
-                        <div class="stat-label">Losses</div>
-                    </div>
-                    <div class="stat-card">
                         <div class="stat-value">${calculateWinPercent(player).toFixed(1)}%</div>
                         <div class="stat-label">Win Rate</div>
                     </div>
                     <div class="stat-card">
-                        <div class="stat-value">${calculateAveragePoints(player).toFixed(1)}</div>
-                        <div class="stat-label">Avg Points/Game</div>
+                        <div class="stat-value">${calculateAveragePointsPerRound(player).toFixed(1)}</div>
+                        <div class="stat-label">Avg Points/Round</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">${calculateWaddiesHoled(player)}</div>
+                        <div class="stat-label">Waddies Holed</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">${calculateBestRound(player)} pts</div>
+                        <div class="stat-label">Best Round</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">${calculateScoringRounds(player)}</div>
+                        <div class="stat-label">Scoring Rounds</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">${calculateHammerPercentage(player).toFixed(1)}%</div>
+                        <div class="stat-label">With Hammer</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">${calculateShootingFirstPercentage(player).toFixed(1)}%</div>
+                        <div class="stat-label">Shooting First</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">${calculateCarryPercentage(player).toFixed(1)}%</div>
+                        <div class="stat-label">Carry %</div>
                     </div>
                 `;
 
@@ -388,44 +416,164 @@
         });
 
         // Calculation helper functions
-        function calculateWins(player, dateRange, gameType) {
-            // Implement win calculation logic based on filters
-            return player.wins || 0;
+        function getPlayerGames(playerId) {
+            return Object.values(gamesData || {}).filter(game => {
+                const playerInTeam1 = game.team1Players && game.team1Players.includes(playerId);
+                const playerInTeam2 = game.team2Players && game.team2Players.includes(playerId);
+                return playerInTeam1 || playerInTeam2;
+            });
         }
 
-        function calculateLosses(player, dateRange, gameType) {
-            // Implement loss calculation logic based on filters
-            return player.losses || 0;
+        function getPlayerRounds(playerId, gameId) {
+            const playerRounds = playerRoundsData[playerId] || {};
+            return playerRounds[gameId]?.rounds || [];
         }
 
-        function calculateTotalGames(player, dateRange, gameType) {
-            // Implement total games calculation logic based on filters
-            return (player.wins || 0) + (player.losses || 0);
+        function calculateWins(playerId, dateRange, gameType) {
+            return getPlayerGames(playerId)
+                .filter(game => filterByDateRange(game.date, dateRange))
+                .filter(game => filterByGameType(game.gameType, gameType))
+                .filter(game => game.isValid && !game.noStats)
+                .reduce((wins, game) => wins + (game.isWin ? 1 : 0), 0);
         }
 
-        function calculatePointsScored(player, dateRange, gameType) {
-            // Implement points scored calculation logic based on filters
-            return player.pointsScored || 0;
+        function calculateLosses(playerId, dateRange, gameType) {
+            return getPlayerGames(playerId)
+                .filter(game => filterByDateRange(game.date, dateRange))
+                .filter(game => filterByGameType(game.gameType, gameType))
+                .filter(game => game.isValid && !game.noStats)
+                .reduce((losses, game) => losses + (!game.isWin ? 1 : 0), 0);
         }
 
-        function calculateScoringPercent(player, dateRange, gameType) {
-            // Implement scoring percentage calculation logic based on filters
-            return player.scoringPercent || 0;
+        function calculateTotalGames(playerId, dateRange, gameType) {
+            return getPlayerGames(playerId)
+                .filter(game => filterByDateRange(game.date, dateRange))
+                .filter(game => filterByGameType(game.gameType, gameType))
+                .filter(game => game.isValid && !game.noStats)
+                .length;
         }
 
-        function calculateClosingPercent(player, dateRange, gameType) {
-            // Implement closing percentage calculation logic based on filters
-            return player.closingPercent || 0;
+        function calculateWinPercent(playerId) {
+            const wins = calculateWins(playerId);
+            const totalGames = calculateTotalGames(playerId);
+            return totalGames > 0 ? (wins / totalGames) * 100 : 0;
         }
 
-        function calculateWinPercent(player) {
-            const totalGames = (player.wins || 0) + (player.losses || 0);
-            return totalGames > 0 ? (player.wins || 0) / totalGames * 100 : 0;
+        function calculateWaddiesHoled(playerId) {
+            return getPlayerGames(playerId)
+                .filter(game => game.isValid && !game.noStats)
+                .reduce((total, game) => {
+                    const rounds = getPlayerRounds(playerId, game.id);
+                    return total + rounds.filter(round => round?.waddieStats?.holed).length;
+                }, 0);
         }
 
-        function calculateAveragePoints(player) {
-            const totalGames = (player.wins || 0) + (player.losses || 0);
-            return totalGames > 0 ? (player.pointsScored || 0) / totalGames : 0;
+        function calculateScoringRounds(playerId) {
+            return getPlayerGames(playerId)
+                .filter(game => game.isValid && !game.noStats)
+                .reduce((total, game) => {
+                    const rounds = getPlayerRounds(playerId, game.id);
+                    return total + rounds.filter(round => round?.score > 0).length;
+                }, 0);
+        }
+
+        function calculateAveragePointsPerRound(playerId) {
+            let totalPoints = 0;
+            let totalRounds = 0;
+            
+            getPlayerGames(playerId)
+                .filter(game => game.isValid && !game.noStats)
+                .forEach(game => {
+                    const rounds = getPlayerRounds(playerId, game.id);
+                    totalPoints += rounds.reduce((sum, round) => sum + (round?.score || 0), 0);
+                    totalRounds += rounds.filter(round => round?.roundNumber).length;
+                });
+
+            return totalRounds > 0 ? totalPoints / totalRounds : 0;
+        }
+
+        function calculateBestRound(playerId) {
+            return getPlayerGames(playerId)
+                .filter(game => game.isValid && !game.noStats)
+                .reduce((best, game) => {
+                    const rounds = getPlayerRounds(playerId, game.id);
+                    const gameBest = Math.max(...rounds.map(round => round?.score || 0));
+                    return Math.max(best, gameBest);
+                }, 0);
+        }
+
+        function calculateHammerPercentage(playerId) {
+            let hammerRounds = 0;
+            let hammerScoringRounds = 0;
+
+            getPlayerGames(playerId)
+                .filter(game => game.isValid && !game.noStats)
+                .forEach(game => {
+                    const rounds = getPlayerRounds(playerId, game.id);
+                    rounds.forEach(round => {
+                        if (round?.isHammer) {
+                            hammerRounds++;
+                            if (round.score > 0) hammerScoringRounds++;
+                        }
+                    });
+                });
+
+            return hammerRounds > 0 ? (hammerScoringRounds / hammerRounds) * 100 : 0;
+        }
+
+        function calculateShootingFirstPercentage(playerId) {
+            let firstShootRounds = 0;
+            let firstShootScoringRounds = 0;
+
+            getPlayerGames(playerId)
+                .filter(game => game.isValid && !game.noStats)
+                .forEach(game => {
+                    const rounds = getPlayerRounds(playerId, game.id);
+                    rounds.forEach(round => {
+                        if (!round?.isHammer) {
+                            firstShootRounds++;
+                            if (round.score > 0) firstShootScoringRounds++;
+                        }
+                    });
+                });
+
+            return firstShootRounds > 0 ? (firstShootScoringRounds / firstShootRounds) * 100 : 0;
+        }
+
+        function calculateCarryPercentage(playerId) {
+            let totalTeamPoints = 0;
+            let playerPoints = 0;
+
+            getPlayerGames(playerId)
+                .filter(game => game.isValid && !game.noStats)
+                .forEach(game => {
+                    const rounds = getPlayerRounds(playerId, game.id);
+                    playerPoints += rounds.reduce((sum, round) => sum + (round?.score || 0), 0);
+                    totalTeamPoints += game.teamScore || 0;
+                });
+
+            return totalTeamPoints > 0 ? (playerPoints / totalTeamPoints) * 100 : 0;
+        }
+
+        function filterByDateRange(gameDate, range) {
+            if (!range || range === 'all') return true;
+            const date = new Date(gameDate * 1000);
+            const now = new Date();
+            switch (range) {
+                case 'month':
+                    return date >= new Date(now.setMonth(now.getMonth() - 1));
+                case '3months':
+                    return date >= new Date(now.setMonth(now.getMonth() - 3));
+                case 'year':
+                    return date >= new Date(now.setFullYear(now.getFullYear() - 1));
+                default:
+                    return true;
+            }
+        }
+
+        function filterByGameType(gameType, filter) {
+            if (!filter || filter === 'all') return true;
+            return gameType === filter;
         }
 
         function updatePlayerChart(player) {
