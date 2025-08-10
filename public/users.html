@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Waddies - Player Details</title>
+  <script defer src="/__/firebase/10.8.0/firebase-app-compat.js"></script>
+  <script defer src="/__/firebase/10.8.0/firebase-database-compat.js"></script>
+  <script defer src="/__/firebase/init.js?useEmulator=false"></script>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; margin:0; background:#f5f5f7; color:#333; }
+    .container { max-width: 1200px; margin: 0 auto; padding: 1rem; }
+    .header { display:flex; align-items:center; justify-content:space-between; margin-bottom:1rem; }
+    .layout { display:grid; grid-template-columns: 360px 1fr; gap: 1rem; }
+    .panel { background:#fff; border-radius:12px; box-shadow:0 1px 3px rgba(0,0,0,0.1); padding:1rem; }
+    .game-list { list-style:none; padding:0; margin:0; max-height:70vh; overflow:auto; }
+    .game-item { padding:0.75rem; border-bottom:1px solid #eee; cursor:pointer; }
+    .game-item:hover, .game-item.active { background:#f8f9fa; }
+    .round { padding:0.5rem 0; border-bottom:1px dashed #eee; }
+    .stats-grid { display:grid; grid-template-columns: repeat(auto-fit, minmax(160px,1fr)); gap:0.75rem; }
+    .stat-card { background:#f8f9fa; border-radius:8px; padding:0.75rem; text-align:center; }
+    .stat-value { font-weight:700; font-size:1.2rem; color:#0070c9; }
+    .muted { color:#666; font-size:0.9rem; }
+    .footer { text-align:center; margin-top:1rem; }
+    a { color:#0070c9; text-decoration:none; }
+    a:hover { text-decoration:underline; }
+    .toolbar { display:flex; gap:0.5rem; align-items:center; margin-bottom:0.75rem; }
+    select { padding:0.4rem 0.5rem; border:1px solid #ddd; border-radius:6px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1 id="playerName">Player</h1>
+      <div class="muted"><a href="index.html">Home</a> · <a href="stats.html">Stats</a></div>
+    </div>
+
+    <div class="layout">
+      <div class="panel">
+        <div class="toolbar">
+          <label for="levelFilter">Level:</label>
+          <select id="levelFilter">
+            <option value="all">All</option>
+            <option value="pro">Pro Only</option>
+          </select>
+        </div>
+        <ul id="gameList" class="game-list"></ul>
+      </div>
+      <div class="panel">
+        <div id="playerStats" class="stats-grid" style="margin-bottom:0.75rem;"></div>
+        <div id="gameHeader" class="muted" style="margin:0.5rem 0 0.5rem;"></div>
+        <div id="rounds"></div>
+      </div>
+    </div>
+
+    <div class="footer muted">Support: <a href="mailto:waddiesapp@gmail.com">waddiesapp@gmail.com</a></div>
+  </div>
+
+  <script>
+    const qs = new URLSearchParams(location.search);
+    const playerId = qs.get('pid');
+    let players = {}; let games = {}; let playerRounds = {};
+
+    function el(id){ return document.getElementById(id); }
+
+    function getGameById(id){ return games[id] || null; }
+    function roundsArr(game){ const rs = game?.rounds || []; return Array.isArray(rs)? rs : Object.values(rs); }
+    function teamInfo(pid, game){
+      const t1 = Object.keys(game?.teams?.team1?.players || {});
+      const t2 = Object.keys(game?.teams?.team2?.players || {});
+      if (t1.includes(pid)) return { teamId: game.teams.team1.id, idx:1 };
+      if (t2.includes(pid)) return { teamId: game.teams.team2.id, idx:2 };
+      return { teamId:null, idx:null };
+    }
+    function hammerSeries(game){
+      const rs = roundsArr(game); const t1 = game?.teams?.team1?.id; const t2 = game?.teams?.team2?.id; if(!t1||!t2) return [];
+      const sim = (h)=>{ let cur=h, out=[]; for(const r of rs){ const pts=Number(r?.pointsScored||0), s=r?.scoringTeam||null; if(pts===0 && s && s!==cur) return null; out.push(cur); cur = (pts>0&&s)? s : (cur===t1?t2:t1);} return out; };
+      return sim(t1) || sim(t2) || [];
+    }
+
+    function attributeForGame(pid, entry){
+      const game = getGameById(entry.gameId); const gameRs = roundsArr(game); const { teamId, idx } = teamInfo(pid, game);
+      let points=0, tossed=0, scoringRounds=0, best=0;
+      for(const r of (entry.rounds||[])){
+        const rn=r.roundNumber||0; const gr = gameRs.find(x=> (x?.roundNumber||0)===rn) || gameRs[rn-1] || null; if(!gr) continue;
+        const iTossed = idx===1 ? gr.team1TosserId===pid : gr.team2TosserId===pid;
+        if(!iTossed) continue; tossed++;
+        const per = Number(r.score||0); const teamScored = Number(gr.pointsScored||0)>0 && gr.scoringTeam===teamId;
+        const attributed = per>0 ? per : (teamScored ? Number(gr.pointsScored||0):0);
+        if(attributed>0){ scoringRounds++; best=Math.max(best, attributed); }
+        points += attributed;
+      }
+      return { points, tossed, scoringRounds, best };
+    }
+
+    function drawStats(pid){
+      const entries = Object.entries(playerRounds[pid]||{}).map(([gameId, node])=>({gameId, meta:node.meta||{}, rounds:Object.values(node.rounds||{}).filter(Boolean)}));
+      const level = el('levelFilter').value;
+      const filtered = entries.filter(e=>{
+        if(!(e.meta && e.meta.isValid)) return false;
+        if(level==='pro'){
+          const g=games[e.gameId]; const proByMode = g && g.scoringMode==='teamAttempts';
+          const hasCounts = e.rounds && e.rounds.some(r=> r?.waddieCounts && typeof r.waddieCounts.holed==='number');
+          if(!proByMode && !hasCounts) return false;
+        }
+        return true;
+      });
+      // Aggregate
+      let totalGames=filtered.length, wins=filtered.reduce((s,e)=> s+(e.meta.isWin?1:0),0), points=0, tossed=0, scoringR=0, best=0;
+      for(const e of filtered){ const a=attributeForGame(pid,e); points+=a.points; tossed+=a.tossed; scoringR+=a.scoringRounds; best=Math.max(best,a.best); }
+      const avg = tossed>0? (points/tossed):0; const winRate = totalGames>0? (wins/totalGames*100):0;
+      el('playerStats').innerHTML = `
+        <div class="stat-card"><div class="stat-value">${totalGames}</div><div class="muted">Games</div></div>
+        <div class="stat-card"><div class="stat-value">${wins}</div><div class="muted">Wins</div></div>
+        <div class="stat-card"><div class="stat-value">${winRate.toFixed(1)}%</div><div class="muted">Win Rate</div></div>
+        <div class="stat-card"><div class="stat-value">${points}</div><div class="muted">Points</div></div>
+        <div class="stat-card"><div class="stat-value">${avg.toFixed(1)}</div><div class="muted">Avg Pts/Round</div></div>
+        <div class="stat-card"><div class="stat-value">${scoringR}</div><div class="muted">Scoring Rounds</div></div>
+        <div class="stat-card"><div class="stat-value">${best}</div><div class="muted">Best Round</div></div>
+      `;
+
+      // Games list
+      const list = el('gameList'); list.innerHTML='';
+      filtered.sort((a,b)=> (games[b.gameId]?.date||0) - (games[a.gameId]?.date||0));
+      for(const e of filtered){
+        const g=games[e.gameId]; const when = g?.date? new Date(g.date*1000).toLocaleString():'';
+        const li=document.createElement('li'); li.className='game-item'; li.dataset.gid=e.gameId;
+        li.textContent = `${when} · ${e.meta.teamName} ${e.meta.teamScore}-${e.meta.opponentScore}`;
+        li.onclick=()=> showGame(pid, e);
+        list.appendChild(li);
+      }
+      if(filtered[0]) showGame(pid, filtered[0]);
+    }
+
+    function showGame(pid, entry){
+      const g = games[entry.gameId]; const rs = roundsArr(g);
+      el('gameHeader').textContent = `${entry.meta.teamName} vs ${entry.meta.opponents?.length||''} · ${new Date((g?.date||0)*1000).toLocaleString()}`;
+      const roundsDiv = el('rounds'); roundsDiv.innerHTML='';
+      // join by roundNumber
+      for(const r of entry.rounds){
+        const rn=r.roundNumber||0; const gr = rs.find(x=> (x?.roundNumber||0)===rn) || rs[rn-1] || null;
+        const per = Number(r.score||0);
+        const pts = Number(gr?.pointsScored||0);
+        const toss = (gr && ((gr.team1TosserId===pid)||(gr.team2TosserId===pid))) ? 'Tossed' : '—';
+        const line = document.createElement('div'); line.className='round';
+        line.textContent = `R${rn}: per=${per} teamPts=${pts} ${toss}`;
+        roundsDiv.appendChild(line);
+      }
+    }
+
+    async function load(){
+      const app = firebase.app(); const db=firebase.database();
+      const pSnap = await db.ref('/players').once('value'); players = pSnap.val()||{}; el('playerName').textContent = players[playerId]?.name || 'Player';
+      // load player-rounds and deduce game ids
+      const prSnap = await db.ref(`/player-rounds/${playerId}`).once('value'); playerRounds[playerId]= prSnap.val()||{};
+      const gameIds = Object.keys(playerRounds[playerId]||{});
+      // load games by id
+      games={}; await Promise.all(gameIds.map(async id=>{ const gs=await db.ref(`/games/${id}`).once('value'); if(gs.exists()) games[id]=gs.val(); }));
+      drawStats(playerId);
+      el('levelFilter').onchange=()=> drawStats(playerId);
+    }
+
+    document.addEventListener('DOMContentLoaded', load);
+  </script>
+</body>
+</html>
+

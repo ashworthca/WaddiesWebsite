@@ -396,9 +396,14 @@
                 });
 
                 // Generate table HTML
+                // If Pro-only selected, hide players with zero games under that filter
+                if (levelFilter !== 'all') {
+                    players = players.filter(p => p.totalGames > 0);
+                }
+
                 tbody.innerHTML = players.map(player => `
                     <tr>
-                        <td><a href="#" class="player-name" data-player-id="${player.id}">${player.name}</a></td>
+                        <td><a href="users.html?pid=${player.id}" class="player-name-link" data-player-id="${player.id}">${player.name}</a></td>
                         <td>${calculateWins(player.id, dateRange, gameType)}</td>
                         <td>${calculateLosses(player.id, dateRange, gameType)}</td>
                         <td>${calculateTotalGames(player.id, dateRange, gameType)}</td>
@@ -413,12 +418,14 @@
                     </tr>
                 `).join('');
 
-                // Add click handlers for player names
-                document.querySelectorAll('.player-name').forEach(link => {
-                    link.onclick = (e) => {
-                        e.preventDefault();
-                        showPlayerDetails(link.dataset.playerId);
-                    };
+                // Keep modal accessible via alt-click if desired
+                document.querySelectorAll('.player-name-link').forEach(link => {
+                    link.addEventListener('click', (e) => {
+                        if (e.altKey) {
+                            e.preventDefault();
+                            showPlayerDetails(link.dataset.playerId);
+                        }
+                    });
                 });
             }
 
