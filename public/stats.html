@@ -261,10 +261,12 @@
 
     <script>
         // Initialize Firebase and load data
+        // Make data objects global so helper functions can access them
+        window.playersData = {};
+        window.gamesData = {};
+        window.playerRoundsData = {};
+
         document.addEventListener('DOMContentLoaded', function() {
-            let playersData = {};
-            let gamesData = {};
-            let playerRoundsData = {};
             let currentSort = { column: 'wins', direction: 'desc' };
             const modal = document.getElementById('playerModal');
             const closeModal = document.querySelector('.close-modal');
@@ -310,9 +312,9 @@
                             return snapshot;
                         })
                     ]).then(([playersSnapshot, gamesSnapshot, roundsSnapshot]) => {
-                        playersData = playersSnapshot.val() || {};
-                        gamesData = gamesSnapshot.val() || {};
-                        playerRoundsData = roundsSnapshot.val() || {};
+                        window.playersData = playersSnapshot.val() || {};
+                        window.gamesData = gamesSnapshot.val() || {};
+                        window.playerRoundsData = roundsSnapshot.val() || {};
                         console.log('All data loaded successfully');
                         console.log('Players:', Object.keys(playersData).length);
                         console.log('Games:', Object.keys(gamesData).length);
@@ -344,7 +346,7 @@
                 const gameType = document.getElementById('gameType').value;
 
                 // Convert players data to array for sorting
-                let players = Object.entries(playersData).map(([id, data]) => ({
+                let players = Object.entries(window.playersData).map(([id, data]) => ({
                     id,
                     name: data.name,
                     wins: calculateWins(id, dateRange, gameType),
@@ -394,7 +396,7 @@
 
             // Show detailed player statistics in modal
             function showPlayerDetails(playerId) {
-                const player = playersData[playerId];
+                const player = window.playersData[playerId];
                 if (!player) return;
 
                 document.getElementById('modalPlayerName').textContent = player.name;
@@ -468,7 +470,7 @@
 
         // Calculation helper functions
         function getPlayerGames(playerId) {
-            return Object.values(gamesData || {}).filter(game => {
+            return Object.values(window.gamesData || {}).filter(game => {
                 const playerInTeam1 = game.team1Players && game.team1Players.includes(playerId);
                 const playerInTeam2 = game.team2Players && game.team2Players.includes(playerId);
                 return playerInTeam1 || playerInTeam2;
@@ -476,7 +478,7 @@
         }
 
         function getPlayerRounds(playerId, gameId) {
-            const playerRounds = playerRoundsData[playerId] || {};
+            const playerRounds = (window.playerRoundsData && window.playerRoundsData[playerId]) || {};
             return playerRounds[gameId]?.rounds || [];
         }
 
