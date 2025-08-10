@@ -280,12 +280,19 @@
             function loadPlayerStats() {
                 document.getElementById('loadingIndicator').style.display = 'block';
                 try {
-                    console.log('Initializing Firebase...');
-                    firebase.initializeApp({
-                        databaseURL: "https://waddies-default-rtdb.firebaseio.com"
-                    });
+                    if (!firebase || !firebase.app) {
+                        throw new Error('Firebase SDK not loaded. Check that the Firebase scripts are loading correctly.');
+                    }
+                    console.log('Getting Firebase app...');
+                    const app = firebase.app();
+                    console.log('Firebase app config:', app.options);
                     
-                    console.log('Firebase initialized, getting database reference...');
+                    if (!app.options.databaseURL) {
+                        console.warn('No databaseURL in Firebase config, setting manually...');
+                        app.options.databaseURL = 'https://waddies-default-rtdb.firebaseio.com';
+                    }
+                    
+                    console.log('Getting database reference...');
                     const db = firebase.database();
                     
                     console.log('Loading data from RTDB...');
@@ -318,11 +325,13 @@
                         if (error.code) {
                             errorMessage += ' (Code: ' + error.code + ')';
                         }
+                        document.getElementById('loadingIndicator').style.display = 'none';
                         document.querySelector('.stats-table').insertAdjacentHTML('beforebegin', 
                             `<div class="error">${errorMessage}</div>`);
                     });
                 } catch (error) {
                     console.error('Error initializing Firebase:', error);
+                    document.getElementById('loadingIndicator').style.display = 'none';
                     document.querySelector('.stats-table').insertAdjacentHTML('beforebegin', 
                         `<div class="error">Error initializing Firebase: ${error.message}</div>`);
                 }
