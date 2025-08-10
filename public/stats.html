@@ -206,6 +206,13 @@
                     <option value="2v2">2v2</option>
                 </select>
             </div>
+            <div class="filter-group">
+                <label for="levelFilter">Level:</label>
+                <select id="levelFilter">
+                    <option value="all">All Levels</option>
+                    <option value="pro">Pro Only</option>
+                </select>
+            </div>
         </div>
 
         <div id="loadingIndicator" class="loading" style="display: none;">
@@ -364,14 +371,15 @@
                 const tbody = document.getElementById('statsTableBody');
                 const dateRange = document.getElementById('dateRange').value;
                 const gameType = document.getElementById('gameType').value;
+                const levelFilter = document.getElementById('levelFilter').value;
 
                 // Convert players data to array for sorting
                 let players = Object.entries(window.playersData || {}).map(([id, data]) => ({
                     id,
                     name: data.name,
-                    wins: calculateWins(id, dateRange, gameType),
-                    losses: calculateLosses(id, dateRange, gameType),
-                    totalGames: calculateTotalGames(id, dateRange, gameType),
+                    wins: calculateWins(id, dateRange, gameType, levelFilter),
+                    losses: calculateLosses(id, dateRange, gameType, levelFilter),
+                    totalGames: calculateTotalGames(id, dateRange, gameType, levelFilter),
                     avgPointsPerRound: calculateAveragePointsPerRound(id),
                     waddiesHoled: calculateWaddiesHoled(id),
                     scoringRounds: calculateScoringRounds(id),
@@ -494,6 +502,7 @@
 
             document.getElementById('dateRange').onchange = updateTable;
             document.getElementById('gameType').onchange = updateTable;
+            document.getElementById('levelFilter').onchange = updateTable;
 
             // Load initial data
             loadPlayerStats();
@@ -521,12 +530,17 @@
             });
         }
 
-        function entryPassesFilters(entry, dateRange, gameType) {
+        function entryPassesFilters(entry, dateRange, gameType, levelFilter) {
             if (!(entry.meta && entry.meta.isValid)) return false;
             if (gameType && gameType !== 'all' && entry.meta.gameType && entry.meta.gameType !== gameType) return false;
             const game = (window.gamesData && window.gamesData[entry.gameId]) || null;
             if (dateRange && dateRange !== 'all' && game && typeof game.date === 'number') {
                 if (!filterByDateRange(game.date, dateRange)) return false;
+            }
+            // Level filter: expect entry.meta.level === 'pro' (future writes); for now, allow missing
+            if (levelFilter && levelFilter !== 'all') {
+                const level = (entry.meta && entry.meta.level) || (game && game.level) || null;
+                if (levelFilter === 'pro' && level !== 'pro') return false;
             }
             return true;
         }
@@ -634,20 +648,20 @@
             return roundsArr.filter(Boolean);
         }
 
-        function calculateWins(playerId, dateRange, gameType) {
+        function calculateWins(playerId, dateRange, gameType, levelFilter) {
             return getPlayerGameEntries(playerId)
-                .filter(e => entryPassesFilters(e, dateRange, gameType))
+                .filter(e => entryPassesFilters(e, dateRange, gameType, levelFilter))
                 .reduce((sum, e) => sum + (e.meta.isWin ? 1 : 0), 0);
         }
 
-        function calculateLosses(playerId, dateRange, gameType) {
+        function calculateLosses(playerId, dateRange, gameType, levelFilter) {
             return getPlayerGameEntries(playerId)
-                .filter(e => entryPassesFilters(e, dateRange, gameType))
+                .filter(e => entryPassesFilters(e, dateRange, gameType, levelFilter))
                 .reduce((sum, e) => sum + (!e.meta.isWin ? 1 : 0), 0);
         }
 
-        function calculateTotalGames(playerId, dateRange, gameType) {
-            return getPlayerGameEntries(playerId).filter(e => entryPassesFilters(e, dateRange, gameType)).length;
+        function calculateTotalGames(playerId, dateRange, gameType, levelFilter) {
+            return getPlayerGameEntries(playerId).filter(e => entryPassesFilters(e, dateRange, gameType, levelFilter)).length;
         }
 
         function calculateWinPercent(playerId) {
@@ -684,7 +698,7 @@
         function calculatePointsScored(playerId, dateRange, gameType) {
             // Sum of per-round points using per-player score, with fallback attribution when needed
             return getPlayerGameEntries(playerId)
-                .filter(e => entryPassesFilters(e, dateRange, gameType))
+                .filter(e => entryPassesFilters(e, dateRange, gameType, document.getElementById('levelFilter').value))
                 .reduce((sum, e) => sum + computeAttributionForEntry(playerId, e).pointsTotal, 0);
         }
 
