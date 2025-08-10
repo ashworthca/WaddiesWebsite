@@ -99,6 +99,19 @@
       }
       return team.name || '';
     }
+    function teamPlayersList(game, key){
+      const team = game?.teams?.[key]; if(!team) return '';
+      const pMap = team.players || {};
+      const entries = Object.entries(pMap);
+      if (entries.length > 0){
+        const names = entries.map(([pid, val]) => {
+          if (val && typeof val === 'object' && val.name) return val.name;
+          const n = players[pid]?.name; return n || pid.substring(0,6);
+        });
+        return names.join(', ');
+      }
+      return '';
+    }
     function prettyMatchup(pid, game){
       const { teamId, idx } = teamInfo(pid, game);
       const mineKey = idx===1? 'team1':'team2';
