@@ -537,10 +537,13 @@
             if (dateRange && dateRange !== 'all' && game && typeof game.date === 'number') {
                 if (!filterByDateRange(game.date, dateRange)) return false;
             }
-            // Level filter: expect entry.meta.level === 'pro' (future writes); for now, allow missing
+            // Level filter: treat Pro as scoringMode === 'teamAttempts' OR presence of per-round waddieCounts
             if (levelFilter && levelFilter !== 'all') {
-                const level = (entry.meta && entry.meta.level) || (game && game.level) || null;
-                if (levelFilter === 'pro' && level !== 'pro') return false;
+                if (levelFilter === 'pro') {
+                    const isProByMode = game && game.scoringMode === 'teamAttempts';
+                    const hasCounts = entry.rounds && entry.rounds.some(r => r && r.waddieCounts && (typeof r.waddieCounts.holed === 'number'));
+                    if (!isProByMode && !hasCounts) return false;
+                }
             }
             return true;
         }
@@ -671,9 +674,15 @@
         }
 
         function calculateWaddiesHoled(playerId) {
+            // Prefer per-round numeric counts when available (v2). Fallback to boolean snapshot (counts as 1 when holed true).
             return getPlayerGameEntries(playerId)
                 .filter(e => e.meta && e.meta.isValid)
-                .reduce((total, e) => total + e.rounds.filter(r => r?.waddieStats?.holed).length, 0);
+                .reduce((total, e) => total + e.rounds.reduce((sum, r) => {
+                    if (!r) return sum;
+                    if (r.waddieCounts && typeof r.waddieCounts.holed === 'number') return sum + r.waddieCounts.holed;
+                    if (r.waddieStats && r.waddieStats.holed === true) return sum + 1;
+                    return sum;
+                }, 0), 0);
         }
 
         function calculateScoringRounds(playerId) {
