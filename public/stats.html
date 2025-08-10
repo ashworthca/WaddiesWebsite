@@ -483,6 +483,25 @@
             });
         }
 
+        function getPlayerGameEntries(playerId) {
+            const prRoot = (window.playerRoundsData && window.playerRoundsData[playerId]) || {};
+            return Object.entries(prRoot).map(([gameId, node]) => {
+                const roundsObj = node.rounds || {};
+                const roundsArr = Array.isArray(roundsObj) ? roundsObj : Object.values(roundsObj);
+                return { gameId, meta: node.meta || {}, rounds: roundsArr.filter(Boolean) };
+            });
+        }
+
+        function entryPassesFilters(entry, dateRange, gameType) {
+            if (!(entry.meta && entry.meta.isValid)) return false;
+            if (gameType && gameType !== 'all' && entry.meta.gameType && entry.meta.gameType !== gameType) return false;
+            const game = (window.gamesData && window.gamesData[entry.gameId]) || null;
+            if (dateRange && dateRange !== 'all' && game && typeof game.date === 'number') {
+                if (!filterByDateRange(game.date, dateRange)) return false;
+            }
+            return true;
+        }
+
         function getPlayerRounds(playerId, gameId) {
             const playerRoundsRoot = window.playerRoundsData || {};
             // player-rounds path is nested by playerId then gameId
@@ -495,30 +514,19 @@
         }
 
         function calculateWins(playerId, dateRange, gameType) {
-            return getPlayerGames(playerId)
-                .filter(game => filterByDateRange(game.date, dateRange))
-                .filter(game => filterByGameType(game.gameType, gameType))
-                .filter(game => game.isValid && !game.noStats)
-                .reduce((wins, game) => {
-                    // if schema uses meta.isWin inside player-rounds, fallback later
-                    return wins + (game.isWin ? 1 : 0);
-                }, 0);
+            return getPlayerGameEntries(playerId)
+                .filter(e => entryPassesFilters(e, dateRange, gameType))
+                .reduce((sum, e) => sum + (e.meta.isWin ? 1 : 0), 0);
         }
 
         function calculateLosses(playerId, dateRange, gameType) {
-            return getPlayerGames(playerId)
-                .filter(game => filterByDateRange(game.date, dateRange))
-                .filter(game => filterByGameType(game.gameType, gameType))
-                .filter(game => game.isValid && !game.noStats)
-                .reduce((losses, game) => losses + (!game.isWin ? 1 : 0), 0);
+            return getPlayerGameEntries(playerId)
+                .filter(e => entryPassesFilters(e, dateRange, gameType))
+                .reduce((sum, e) => sum + (!e.meta.isWin ? 1 : 0), 0);
         }
 
         function calculateTotalGames(playerId, dateRange, gameType) {
-            return getPlayerGames(playerId)
-                .filter(game => filterByDateRange(game.date, dateRange))
-                .filter(game => filterByGameType(game.gameType, gameType))
-                .filter(game => game.isValid && !game.noStats)
-                .length;
+            return getPlayerGameEntries(playerId).filter(e => entryPassesFilters(e, dateRange, gameType)).length;
         }
 
         function calculateWinPercent(playerId) {
@@ -528,60 +536,42 @@
         }
 
         function calculateWaddiesHoled(playerId) {
-            return getPlayerGames(playerId)
-                .filter(game => game.isValid && !game.noStats)
-                .reduce((total, game) => {
-                    const rounds = getPlayerRounds(playerId, game.id);
-                    return total + rounds.filter(round => round?.waddieStats?.holed).length;
-                }, 0);
+            return getPlayerGameEntries(playerId)
+                .filter(e => e.meta && e.meta.isValid)
+                .reduce((total, e) => total + e.rounds.filter(r => r?.waddieStats?.holed).length, 0);
         }
 
         function calculateScoringRounds(playerId) {
-            return getPlayerGames(playerId)
-                .filter(game => game.isValid && !game.noStats)
-                .reduce((total, game) => {
-                    const rounds = getPlayerRounds(playerId, game.id);
-                    return total + rounds.filter(round => round?.score > 0).length;
-                }, 0);
+            return getPlayerGameEntries(playerId)
+                .filter(e => e.meta && e.meta.isValid)
+                .reduce((total, e) => total + e.rounds.filter(r => (r?.score || 0) > 0).length, 0);
         }
 
         function calculateAveragePointsPerRound(playerId) {
             let totalPoints = 0;
             let totalRounds = 0;
-            
-            getPlayerGames(playerId)
-                .filter(game => game.isValid && !game.noStats)
-                .forEach(game => {
-                    const rounds = getPlayerRounds(playerId, game.id);
-                    totalPoints += rounds.reduce((sum, round) => sum + (round?.score || 0), 0);
-                    totalRounds += rounds.filter(round => round?.roundNumber).length;
+            getPlayerGameEntries(playerId)
+                .filter(e => e.meta && e.meta.isValid)
+                .forEach(e => {
+                    totalPoints += e.rounds.reduce((sum, r) => sum + (r?.score || 0), 0);
+                    totalRounds += e.rounds.filter(r => r?.roundNumber).length;
                 });
-
             return totalRounds > 0 ? totalPoints / totalRounds : 0;
         }
 
         function calculatePointsScored(playerId, dateRange, gameType) {
             // Sum of per-round scores for this player across filtered games
             let total = 0;
-            getPlayerGames(playerId)
-                .filter(game => filterByDateRange(game.date, dateRange))
-                .filter(game => filterByGameType(game.gameType, gameType))
-                .filter(game => game.isValid && !game.noStats)
-                .forEach(game => {
-                    const rounds = getPlayerRounds(playerId, game.id);
-                    total += rounds.reduce((sum, round) => sum + (round?.score || 0), 0);
-                });
+            getPlayerGameEntries(playerId)
+                .filter(e => entryPassesFilters(e, dateRange, gameType))
+                .forEach(e => { total += e.rounds.reduce((sum, r) => sum + (r?.score || 0), 0); });
             return total;
         }
 
         function calculateBestRound(playerId) {
-            return getPlayerGames(playerId)
-                .filter(game => game.isValid && !game.noStats)
-                .reduce((best, game) => {
-                    const rounds = getPlayerRounds(playerId, game.id);
-                    const gameBest = Math.max(...rounds.map(round => round?.score || 0));
-                    return Math.max(best, gameBest);
-                }, 0);
+            return getPlayerGameEntries(playerId)
+                .filter(e => e.meta && e.meta.isValid)
+                .reduce((best, e) => Math.max(best, Math.max(0, ...e.rounds.map(r => r?.score || 0))), 0);
         }
 
         function calculateHammerPercentage(playerId) {
@@ -623,18 +613,16 @@
         }
 
         function calculateCarryPercentage(playerId) {
-            let totalTeamPoints = 0;
-            let playerPoints = 0;
-
-            getPlayerGames(playerId)
-                .filter(game => game.isValid && !game.noStats)
-                .forEach(game => {
-                    const rounds = getPlayerRounds(playerId, game.id);
-                    playerPoints += rounds.reduce((sum, round) => sum + (round?.score || 0), 0);
-                    totalTeamPoints += game.teamScore || 0;
+            // Average of per-game shares: myPointsThisGame / teamScore
+            const shares = getPlayerGameEntries(playerId)
+                .filter(e => e.meta && e.meta.isValid && (e.meta.teamScore || 0) > 0)
+                .map(e => {
+                    const myPts = e.rounds.reduce((sum, r) => sum + (r?.score || 0), 0);
+                    return myPts / e.meta.teamScore;
                 });
-
-            return totalTeamPoints > 0 ? (playerPoints / totalTeamPoints) * 100 : 0;
+            if (shares.length === 0) return 0;
+            const avg = shares.reduce((a, b) => a + b, 0) / shares.length;
+            return avg * 100;
         }
 
         function filterByDateRange(gameDate, range) {
