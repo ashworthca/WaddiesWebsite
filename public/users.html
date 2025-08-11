@@ -66,7 +66,7 @@
 
     <!-- Overall stats area -->
     <div class="panel" style="margin-bottom:1rem;">
-      <div class="section-title">Overall Stats</div>
+      <div id="overallTitle" class="section-title">Overall Stats</div>
       <div id="playerStats" class="stats-grid"></div>
     </div>
 
@@ -170,6 +170,7 @@
     function drawStats(pid){
       const entries = Object.entries(playerRounds[pid]||{}).map(([gameId, node])=>({gameId, meta:node.meta||{}, rounds:Object.values(node.rounds||{}).filter(Boolean)}));
       const level = el('levelFilter').value;
+      el('overallTitle').textContent = `Overall Stats - ${level === 'pro' ? 'Pro Only' : 'All'}`;
       const filtered = entries.filter(e=>{
         if(!(e.meta && e.meta.isValid)) return false;
         if(level==='pro'){
