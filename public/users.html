@@ -75,7 +75,7 @@
       <div class="panel">
         <div class="section-title">Games</div>
         <div class="toolbar">
-          <label for="levelFilter">Level:</label>
+          <label for="levelFilter">Filter:</label>
           <select id="levelFilter">
             <option value="all">All</option>
             <option value="pro">Pro Only</option>
@@ -173,9 +173,8 @@
       const filtered = entries.filter(e=>{
         if(!(e.meta && e.meta.isValid)) return false;
         if(level==='pro'){
-          const g=games[e.gameId]; const proByMode = g && g.scoringMode==='teamAttempts';
-          const hasCounts = e.rounds && e.rounds.some(r=> r?.waddieCounts && typeof r.waddieCounts.holed==='number');
-          if(!proByMode && !hasCounts) return false;
+          const g=games[e.gameId];
+          if(!(g && g.scoringMode==='teamAttempts')) return false;
         }
         return true;
       });
