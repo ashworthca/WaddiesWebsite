@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Waddies - Admin</title>
   <script defer src="/__/firebase/10.8.0/firebase-app-compat.js"></script>
+  <script defer src="/__/firebase/10.8.0/firebase-auth-compat.js"></script>
   <script defer src="/__/firebase/10.8.0/firebase-database-compat.js"></script>
   <script defer src="/__/firebase/init.js?useEmulator=false"></script>
   <style>
@@ -97,14 +98,28 @@
       return await sha256Hex('waddies4fun');
     }
 
+    const ADMIN_EMAIL = 'admin@waddies.app'; // Ensure this user exists in Firebase Auth (Email/Password)
     document.getElementById('loginBtn').onclick = async () => {
       const u = document.getElementById('user').value.trim();
       const p = document.getElementById('pass').value;
       const okUser = (u === 'admin');
       const okPass = (await sha256Hex(p)) === (await expectedHash());
       if (okUser && okPass){
-        document.getElementById('login').style.display = 'none';
-        document.getElementById('app').style.display = 'block';
+        try {
+          // Sign in to satisfy RTDB rules that require auth != null
+          await firebase.auth().signInWithEmailAndPassword(ADMIN_EMAIL, p);
+          document.getElementById('login').style.display = 'none';
+          document.getElementById('app').style.display = 'block';
+        } catch (e){
+          // Fallback: try anonymous auth if enabled on the project
+          try {
+            await firebase.auth().signInAnonymously();
+            document.getElementById('login').style.display = 'none';
+            document.getElementById('app').style.display = 'block';
+          } catch (e2){
+            const err = document.getElementById('loginErr'); err.style.display='block'; err.textContent='Auth failed (enable Email/Password for '+ADMIN_EMAIL+' or Anonymous Sign-in).';
+          }
+        }
       } else {
         const err = document.getElementById('loginErr'); err.style.display='block'; err.textContent='Invalid credentials';
       }
