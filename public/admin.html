@@ -89,10 +89,13 @@
         </div>
         <div>
           <div class="muted" id="playerHeader">Select a player to view details</div>
-          <h4>Games <span class="badge" id="playerGamesCount">0</span></h4>
+          <h4 style="display:flex; align-items:center; gap:10px;">
+            <span>Games <span class="badge" id="playerGamesCount">0</span></span>
+            <button class="btn danger" id="deleteAllGamesBtn" title="Delete all games this player participated in">Delete All</button>
+          </h4>
           <div class="list" style="margin-bottom:10px;">
             <table class="table" id="playerGames">
-              <thead><tr><th>Date</th><th>Match</th><th>Score</th></tr></thead>
+              <thead><tr><th>Date</th><th>Match</th><th>Score</th><th>Actions</th></tr></thead>
               <tbody></tbody>
             </table>
           </div>
@@ -220,12 +223,15 @@
           const date = g?.date ? new Date(g.date*1000).toLocaleString() : '';
           const match = `${teamNames(g,'team1')} vs ${teamNames(g,'team2')}`;
           const score = `${g?.teams?.team1?.score ?? ''} - ${g?.teams?.team2?.score ?? ''}`;
-          gamesRows.push({ date, match, score });
+          gamesRows.push({ gid, date, match, score });
         }
       });
       const gt = document.querySelector('#playerGames tbody'); gt.innerHTML='';
       gamesRows.sort((a,b)=> (a.date>b.date? -1:1)).forEach(r => {
-        row(gt, [r.date, r.match, r.score]);
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td>${r.date}</td><td>${r.match}</td><td>${r.score}</td><td><button class=\"btn danger\" data-gid=\"${r.gid}\">Delete</button></td>`;
+        tr.querySelector('button').onclick = () => deleteGameForPlayer(pid, r.gid);
+        gt.appendChild(tr);
       });
       document.getElementById('playerGamesCount').textContent = String(gamesRows.length);
 
@@ -240,6 +246,33 @@
       const prt = document.querySelector('#playerRoundsTable tbody'); prt.innerHTML='';
       prRows.forEach(r => row(prt, [r.gid.slice(0,8)+'…', r.team, r.score, r.win]));
       document.getElementById('playerRoundsCount').textContent = String(prRows.length);
+    }
+
+    async function deleteGameForPlayer(pid, gid){
+      if (!confirm(`Delete game ${gid} and this player's rounds?`)) return;
+      try {
+        const db = firebase.database();
+        const updates = {};
+        // delete the game entirely
+        updates[`/games/${gid}`] = null;
+        // delete player-rounds entries for all players involved in this game
+        const involved = new Set();
+        const g = state.games[gid];
+        if (g){
+          Object.keys(g?.teams?.team1?.players || {}).forEach(p=> involved.add(p));
+          Object.keys(g?.teams?.team2?.players || {}).forEach(p=> involved.add(p));
+        }
+        // If not in state (fresh), at least delete the current player's node
+        if (involved.size === 0) involved.add(pid);
+        involved.forEach(p => { updates[`/player-rounds/${p}/${gid}`] = null; });
+
+        await db.ref().update(updates);
+        // Refresh local state and re-render
+        await loadAll();
+        renderPlayer(pid);
+      } catch (e){
+        alert('Delete game failed: ' + (e?.message || e));
+      }
     }
 
     function scanOrphans(){
@@ -335,6 +368,9 @@
         await loadAll();
         await deletePlayerCascade(pid, scrub);
         el('deleteResult').textContent = 'Delete requested. If rules block writes, adjust permissions.';
+        // Refresh lists
+        await loadAll();
+        buildPlayersList();
       } catch (e){
         el('deleteResult').textContent = 'Delete failed: ' + (e?.message || e);
       }
@@ -345,6 +381,12 @@
       try { await loadAll(); buildPlayersList(); } catch(e){ alert('Refresh failed: '+(e?.message||e)); }
     };
     document.getElementById('playerSearch').oninput = () => buildPlayersList();
+
+    // Initialize players after login automatically
+    (async function initAfterLogin(){
+      // Wait a tick for login to complete
+      setTimeout(async () => { try { await loadAll(); buildPlayersList(); } catch(_){} }, 500);
+    })();
   </script>
 </body>
 </html>
