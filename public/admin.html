@@ -73,6 +73,41 @@
     </div>
 
     <div class="panel">
+      <h3>Players</h3>
+      <div style="display:flex; gap:8px; align-items:center; margin-bottom:8px; max-width:560px;">
+        <input id="playerSearch" placeholder="Search name or id" style="flex:1; padding:8px; border:1px solid #ddd; border-radius:8px;" />
+        <button class="btn secondary" id="playersRefresh">Refresh</button>
+      </div>
+      <div class="grid" style="grid-template-columns: 320px 1fr;">
+        <div>
+          <div class="list">
+            <table class="table" id="playersTable">
+              <thead><tr><th>Player</th></tr></thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+        <div>
+          <div class="muted" id="playerHeader">Select a player to view details</div>
+          <h4>Games <span class="badge" id="playerGamesCount">0</span></h4>
+          <div class="list" style="margin-bottom:10px;">
+            <table class="table" id="playerGames">
+              <thead><tr><th>Date</th><th>Match</th><th>Score</th></tr></thead>
+              <tbody></tbody>
+            </table>
+          </div>
+          <h4>Player-Rounds <span class="badge" id="playerRoundsCount">0</span></h4>
+          <div class="list">
+            <table class="table" id="playerRoundsTable">
+              <thead><tr><th>Game</th><th>Team</th><th>Score</th><th>Win</th></tr></thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
       <h3>Delete Player and Data</h3>
       <div class="muted">Removes the player record, their player-rounds, and optionally scrubs their ID from games’ team player lists.</div>
       <div class="field" style="max-width:480px;"><label>Player ID</label><input id="delPid" placeholder="playerId (email-hash/UUID)" /></div>
@@ -141,6 +176,70 @@
       state.players = pSnap.val() || {};
       state.games = gSnap.val() || {};
       state.playerRounds = prSnap.val() || {};
+    }
+
+    function buildPlayersList(){
+      const tbody = document.querySelector('#playersTable tbody');
+      const q = (document.getElementById('playerSearch').value || '').toLowerCase();
+      const rows = Object.entries(state.players)
+        .map(([pid, p]) => ({ pid, name: p?.name || '', idShort: pid.slice(0,6) }))
+        .filter(x => !q || x.name.toLowerCase().includes(q) || x.pid.toLowerCase().includes(q))
+        .sort((a,b) => a.name.localeCompare(b.name));
+      tbody.innerHTML='';
+      rows.forEach(x => {
+        const tr = document.createElement('tr');
+        tr.dataset.pid = x.pid;
+        tr.innerHTML = `<td><strong>${x.name || '(unnamed)'}</strong><div class="muted">${x.idShort}</div></td>`;
+        tr.onclick = () => renderPlayer(x.pid);
+        tbody.appendChild(tr);
+      });
+    }
+
+    function teamNames(game, key){
+      const team = game?.teams?.[key]; if(!team) return '';
+      const pMap = team.players || {};
+      const entries = Object.entries(pMap);
+      if (entries.length > 0){
+        const names = entries.map(([pid, val]) => (val && typeof val === 'object' && val.name) ? val.name : (state.players[pid]?.name || pid.slice(0,6)));
+        return names.join(' & ');
+      }
+      return team.name || '';
+    }
+
+    function renderPlayer(pid){
+      const p = state.players[pid];
+      document.getElementById('delPid').value = pid;
+      document.getElementById('playerHeader').innerHTML = `<strong>${p?.name || '(unnamed)'} </strong><span class="muted">${pid}</span>`;
+
+      // Games that include this player
+      const gamesRows = [];
+      Object.entries(state.games).forEach(([gid, g]) => {
+        const t1Ids = Object.keys(g?.teams?.team1?.players || {});
+        const t2Ids = Object.keys(g?.teams?.team2?.players || {});
+        if (t1Ids.includes(pid) || t2Ids.includes(pid)){
+          const date = g?.date ? new Date(g.date*1000).toLocaleString() : '';
+          const match = `${teamNames(g,'team1')} vs ${teamNames(g,'team2')}`;
+          const score = `${g?.teams?.team1?.score ?? ''} - ${g?.teams?.team2?.score ?? ''}`;
+          gamesRows.push({ date, match, score });
+        }
+      });
+      const gt = document.querySelector('#playerGames tbody'); gt.innerHTML='';
+      gamesRows.sort((a,b)=> (a.date>b.date? -1:1)).forEach(r => {
+        row(gt, [r.date, r.match, r.score]);
+      });
+      document.getElementById('playerGamesCount').textContent = String(gamesRows.length);
+
+      // Player-rounds entries
+      const prFor = state.playerRounds[pid] || {};
+      const prRows = Object.entries(prFor).map(([gid, node])=>{
+        const team = node?.meta?.teamName || '';
+        const score = `${node?.meta?.teamScore ?? ''}-${node?.meta?.opponentScore ?? ''}`;
+        const win = node?.meta?.isWin ? '✅' : '❌';
+        return { gid, team, score, win };
+      });
+      const prt = document.querySelector('#playerRoundsTable tbody'); prt.innerHTML='';
+      prRows.forEach(r => row(prt, [r.gid.slice(0,8)+'…', r.team, r.score, r.win]));
+      document.getElementById('playerRoundsCount').textContent = String(prRows.length);
     }
 
     function scanOrphans(){
@@ -221,6 +320,7 @@
       try {
         await loadAll();
         scanOrphans();
+        buildPlayersList();
       } catch (e){
         alert('Scan failed: ' + (e?.message || e));
       }
@@ -239,6 +339,12 @@
         el('deleteResult').textContent = 'Delete failed: ' + (e?.message || e);
       }
     };
+
+    // Players list interactions
+    document.getElementById('playersRefresh').onclick = async () => {
+      try { await loadAll(); buildPlayersList(); } catch(e){ alert('Refresh failed: '+(e?.message||e)); }
+    };
+    document.getElementById('playerSearch').oninput = () => buildPlayersList();
   </script>
 </body>
 </html>
