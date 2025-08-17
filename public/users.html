@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Waddies - Player Details</title>
   <script defer src="/__/firebase/10.8.0/firebase-app-compat.js"></script>
+  <script defer src="/__/firebase/10.8.0/firebase-auth-compat.js"></script>
   <script defer src="/__/firebase/10.8.0/firebase-database-compat.js"></script>
   <script defer src="/__/firebase/init.js?useEmulator=false"></script>
   <style>
@@ -78,7 +79,9 @@
           <label for="levelFilter">Filter:</label>
           <select id="levelFilter">
             <option value="all">All</option>
-            <option value="pro">Pro Only</option>
+            <option value="standard">Standard</option>
+            <option value="pro">Pro</option>
+            <option value="tourney">Tourney</option>
           </select>
         </div>
         <ul id="gameList" class="game-list"></ul>
@@ -170,13 +173,16 @@
     function drawStats(pid){
       const entries = Object.entries(playerRounds[pid]||{}).map(([gameId, node])=>({gameId, meta:node.meta||{}, rounds:Object.values(node.rounds||{}).filter(Boolean)}));
       const level = el('levelFilter').value;
-      el('overallTitle').textContent = `Overall Stats - ${level === 'pro' ? 'Pro Only' : 'All'}`;
+      const label = level==='standard' ? 'Standard' : (level==='pro' ? 'Pro' : (level==='tourney' ? 'Tourney' : 'All'));
+      el('overallTitle').textContent = `Overall Stats - ${label}`;
       const filtered = entries.filter(e=>{
         if(!(e.meta && e.meta.isValid)) return false;
-        if(level==='pro'){
-          const g=games[e.gameId];
-          if(!(g && g.scoringMode==='teamAttempts')) return false;
-        }
+        const g = games[e.gameId];
+        const isPro = !!(g && g.scoringMode === 'teamAttempts');
+        const isTourney = !!(g && g.tournamentId);
+        if(level==='pro') return isPro;
+        if(level==='tourney') return isTourney;
+        if(level==='standard') return !(isPro || isTourney);
         return true;
       });
       // Aggregate
@@ -283,7 +289,10 @@
     }
 
     async function load(){
-      const app = firebase.app(); const db=firebase.database();
+      const app = firebase.app();
+      if (!app.options.databaseURL) { app.options.databaseURL = 'https://waddies-default-rtdb.firebaseio.com'; }
+      try { await firebase.auth().signInAnonymously(); } catch (e) { console.warn('Anonymous sign-in failed:', e?.code || e?.message); }
+      const db=firebase.database();
       const pSnap = await db.ref('/players').once('value'); players = pSnap.val()||{}; el('playerName').textContent = players[playerId]?.name || 'Player';
       // load player-rounds and deduce game ids
       const prSnap = await db.ref(`/player-rounds/${playerId}`).once('value'); playerRounds[playerId]= prSnap.val()||{};

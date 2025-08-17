@@ -53,8 +53,10 @@
     <div class="panel">
       <h3>Scan for Orphans</h3>
       <div class="muted">Find records with missing counterparts (e.g., games referencing unknown players, player-rounds for missing players/games).</div>
-      <div style="margin:8px 0; display:flex; gap:8px;">
+      <div style="margin:8px 0; display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
         <button class="btn" id="scanBtn">Scan Database</button>
+        <button class="btn danger" id="deleteNoTeamGamesBtn" style="display:none;">Delete All 'No Team Players' Games</button>
+        <span class="muted" id="deleteNoTeamGamesInfo" style="display:none;"></span>
       </div>
       <div class="grid">
         <div>
@@ -73,7 +75,7 @@
     </div>
 
     <div class="panel">
-      <h3>Players</h3>
+      <h3>Players with Emails</h3>
       <div style="display:flex; gap:8px; align-items:center; margin-bottom:8px; max-width:560px;">
         <input id="playerSearch" placeholder="Search name or id" style="flex:1; padding:8px; border:1px solid #ddd; border-radius:8px;" />
         <button class="btn secondary" id="playersRefresh">Refresh</button>
@@ -107,6 +109,17 @@
             </table>
           </div>
         </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h3>Players without Emails</h3>
+      <div class="muted">Players referenced in games but not present in <code>/players</code>. Select to prefill the delete form, or delete directly (scrubs from games).</div>
+      <div class="list" style="margin-top:8px;">
+        <table class="table" id="unknownPlayersTable">
+          <thead><tr><th>Player</th><th>Refs</th><th>Actions</th></tr></thead>
+          <tbody></tbody>
+        </table>
       </div>
     </div>
 
@@ -209,6 +222,57 @@
       return team.name || '';
     }
 
+    function buildUnknownPlayersList(){
+      const tbody = document.querySelector('#unknownPlayersTable tbody'); if(!tbody) return;
+      const knownIds = new Set(Object.keys(state.players||{}));
+      const unknownMap = new Map(); // pid -> { name, refs }
+      Object.values(state.games||{}).forEach(g => {
+        const addFrom = (playersMap) => {
+          Object.entries(playersMap || {}).forEach(([pid, val]) => {
+            if (!knownIds.has(pid)){
+              const existing = unknownMap.get(pid) || { name: '', refs: 0 };
+              const nm = (val && typeof val === 'object' && val.name) ? val.name : existing.name;
+              unknownMap.set(pid, { name: nm || existing.name || '', refs: existing.refs + 1 });
+            }
+          });
+        };
+        addFrom(g?.teams?.team1?.players);
+        addFrom(g?.teams?.team2?.players);
+      });
+      const rows = Array.from(unknownMap.entries()).map(([pid, info])=>({ pid, name: info.name || '(unnamed)', refs: info.refs }))
+        .sort((a,b)=> b.refs - a.refs || a.name.localeCompare(b.name));
+      tbody.innerHTML='';
+      rows.forEach(x => {
+        const tr = document.createElement('tr');
+        const idShort = x.pid.slice(0, 10) + '…';
+        const selectBtnId = `sel_${x.pid}`;
+        const delBtnId = `del_${x.pid}`;
+        tr.innerHTML = `<td><strong>${x.name}</strong><div class="muted">${idShort}</div></td>`+
+                       `<td>${x.refs}</td>`+
+                       `<td>`+
+                         `<button class=\"btn secondary\" id=\"${selectBtnId}\">Select</button> `+
+                         `<button class=\"btn danger\" id=\"${delBtnId}\">Delete</button>`+
+                       `</td>`;
+        tbody.appendChild(tr);
+        // Wire actions
+        setTimeout(()=>{
+          const selBtn = document.getElementById(selectBtnId);
+          if (selBtn){ selBtn.onclick = () => { el('delPid').value = x.pid; el('scrubGames').checked = true; el('deleteResult').textContent = `Selected ${x.name} (${x.pid})`; }; }
+          const delBtn = document.getElementById(delBtnId);
+          if (delBtn){ delBtn.onclick = async () => {
+            if (!confirm(`Delete unknown player ${x.name} and scrub from games?`)) return;
+            try {
+              await loadAll();
+              await deletePlayerCascade(x.pid, true);
+              await loadAll();
+              buildUnknownPlayersList();
+              buildPlayersList();
+            } catch(e){ alert('Delete failed: ' + (e?.message||e)); }
+          }; }
+        }, 0);
+      });
+    }
+
     function renderPlayer(pid){
       const p = state.players[pid];
       document.getElementById('delPid').value = pid;
@@ -275,13 +339,40 @@
       }
     }
 
+    async function deleteGameById(gid){
+      if (!confirm(`Delete game ${gid} and all related player-rounds?`)) return;
+      try {
+        const db = firebase.database();
+        const updates = {};
+        updates[`/games/${gid}`] = null;
+        // remove any player-rounds entries that reference this game id
+        Object.entries(state.playerRounds || {}).forEach(([pid, gamesObj]) => {
+          if (gamesObj && Object.prototype.hasOwnProperty.call(gamesObj, gid)){
+            updates[`/player-rounds/${pid}/${gid}`] = null;
+          }
+        });
+        await db.ref().update(updates);
+        await loadAll();
+        scanOrphans();
+        buildPlayersList();
+        buildUnknownPlayersList();
+      } catch (e){
+        alert('Delete game failed: ' + (e?.message || e));
+      }
+    }
+
     function scanOrphans(){
       const orphanPlayersT = el('orphanPlayers').querySelector('tbody'); orphanPlayersT.innerHTML='';
       const orphanGamesT   = el('orphanGames').querySelector('tbody');   orphanGamesT.innerHTML='';
       const orphanRoundsT  = el('orphanRounds').querySelector('tbody');  orphanRoundsT.innerHTML='';
+      const bulkDeleteBtn = el('deleteNoTeamGamesBtn');
+      const bulkInfo = el('deleteNoTeamGamesInfo');
+      let noTeamGames = [];
 
       const players = state.players; const games = state.games; const pr = state.playerRounds;
+      // Build a set of known identifiers: RTDB player keys and the app-level player.id field
       const playerIds = new Set(Object.keys(players));
+      const altIds = new Set(Object.values(players).map(p => (p && typeof p === 'object') ? (p.id || null) : null).filter(Boolean));
 
       // Orphan player-rounds: playerId not in players, or gameId not in games
       let orphanRoundsCount = 0;
@@ -296,16 +387,43 @@
         });
       });
 
-      // Orphan games: any team players not found in /players, or empty players listing
+      // Orphan games: only when there are no team players at all, OR none of the listed players match known player ids (by RTDB key or player.id),
+      // AND there is no player-rounds entry linking any known player to the game
       let orphanGamesCount = 0;
       Object.entries(games).forEach(([gid, g])=>{
         const t1 = Object.keys(g?.teams?.team1?.players || {});
         const t2 = Object.keys(g?.teams?.team2?.players || {});
         const all = [...t1, ...t2];
-        const missing = all.filter(pid => !playerIds.has(pid));
-        if (all.length === 0 || missing.length > 0){
-          const issue = all.length === 0 ? 'no team players' : `missing players: ${missing.map(x=>players[x]?.name||x).join(', ')}`;
-          row(orphanGamesT, [gid, issue]); orphanGamesCount++;
+        // Cross-link check via /player-rounds
+        const linkedViaPlayerRounds = Array.from(playerIds).some(pid => !!(pr?.[pid]?.[gid]));
+        const addOrphanGameRow = (issueText, withDeleteBtn = true) => {
+          const tr = document.createElement('tr');
+          const tdId = document.createElement('td'); tdId.textContent = gid;
+          const tdIssue = document.createElement('td'); tdIssue.innerHTML = `${issueText} `;
+          if (withDeleteBtn){
+            const btn = document.createElement('button'); btn.className = 'btn danger'; btn.textContent = 'Delete'; btn.onclick = () => deleteGameById(gid);
+            tdIssue.appendChild(btn);
+          }
+          tr.appendChild(tdId); tr.appendChild(tdIssue);
+          orphanGamesT.appendChild(tr);
+          orphanGamesCount++;
+        };
+        if (all.length === 0){
+          if (!linkedViaPlayerRounds){ addOrphanGameRow('no team players', false); noTeamGames.push(gid); }
+          return;
+        }
+        // Treat as existing if a player key matches RTDB key OR matches any players[*].id
+        const existingCount = all.filter(pid => playerIds.has(pid) || altIds.has(pid)).length;
+        if (existingCount === 0){
+          if (!linkedViaPlayerRounds){
+            const unknownNames = [g?.teams?.team1?.players || {}, g?.teams?.team2?.players || {}]
+              .flatMap(map => Object.entries(map))
+              .filter(([pid]) => !(playerIds.has(pid) || altIds.has(pid)))
+              .map(([, val]) => (val && typeof val === 'object' && val.name) ? val.name : '')
+              .filter(Boolean);
+            const detail = unknownNames.length ? ` — players: ${unknownNames.join(', ')}` : '';
+            addOrphanGameRow(`0/${all.length} known (no players found in /players)${detail}`);
+          }
         }
       });
 
@@ -326,6 +444,33 @@
       setCount('orphanPlayersCount', orphanPlayersCount);
       setCount('orphanGamesCount', orphanGamesCount);
       setCount('orphanRoundsCount', orphanRoundsCount);
+
+      // Toggle bulk delete controls
+      if (noTeamGames.length > 0){
+        bulkDeleteBtn.style.display = 'inline-block';
+        bulkInfo.style.display = 'inline';
+        bulkInfo.textContent = `(${noTeamGames.length} found)`;
+        bulkDeleteBtn.onclick = async () => {
+          if (!confirm(`Delete ${noTeamGames.length} game(s) that have no team players, and remove related player-rounds?`)) return;
+          try {
+            const db = firebase.database();
+            const updates = {};
+            noTeamGames.forEach(gid => { updates[`/games/${gid}`] = null; });
+            // Remove all related player-rounds
+            Object.entries(state.playerRounds || {}).forEach(([pid, gamesObj]) => {
+              noTeamGames.forEach(gid => { if (gamesObj && Object.prototype.hasOwnProperty.call(gamesObj, gid)) updates[`/player-rounds/${pid}/${gid}`] = null; });
+            });
+            await db.ref().update(updates);
+            await loadAll();
+            scanOrphans();
+            buildPlayersList();
+            buildUnknownPlayersList();
+          } catch(e){ alert('Bulk delete failed: ' + (e?.message||e)); }
+        };
+      } else {
+        bulkDeleteBtn.style.display = 'none';
+        bulkInfo.style.display = 'none'; bulkInfo.textContent = '';
+      }
     }
 
     async function deletePlayerCascade(pid, scrub){
@@ -354,6 +499,7 @@
         await loadAll();
         scanOrphans();
         buildPlayersList();
+        buildUnknownPlayersList();
       } catch (e){
         alert('Scan failed: ' + (e?.message || e));
       }
@@ -378,14 +524,14 @@
 
     // Players list interactions
     document.getElementById('playersRefresh').onclick = async () => {
-      try { await loadAll(); buildPlayersList(); } catch(e){ alert('Refresh failed: '+(e?.message||e)); }
+      try { await loadAll(); buildPlayersList(); buildUnknownPlayersList(); } catch(e){ alert('Refresh failed: '+(e?.message||e)); }
     };
     document.getElementById('playerSearch').oninput = () => buildPlayersList();
 
     // Initialize players after login automatically
     (async function initAfterLogin(){
       // Wait a tick for login to complete
-      setTimeout(async () => { try { await loadAll(); buildPlayersList(); } catch(_){} }, 500);
+      setTimeout(async () => { try { await loadAll(); buildPlayersList(); buildUnknownPlayersList(); } catch(_){} }, 500);
     })();
   </script>
 </body>

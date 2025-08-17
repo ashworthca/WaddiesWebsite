@@ -6,6 +6,7 @@
     <title>Waddies - Player Statistics</title>
     <!-- Firebase SDK -->
     <script defer src="/__/firebase/10.8.0/firebase-app-compat.js"></script>
+    <script defer src="/__/firebase/10.8.0/firebase-auth-compat.js"></script>
     <script defer src="/__/firebase/10.8.0/firebase-database-compat.js"></script>
     <script defer src="/__/firebase/init.js?useEmulator=false"></script>
     <!-- Chart.js for statistics visualization -->
@@ -209,8 +210,10 @@
             <div class="filter-group">
                 <label for="levelFilter">Level:</label>
                 <select id="levelFilter">
-                    <option value="all">All Levels</option>
-                    <option value="pro">Pro Only</option>
+                    <option value="all">All</option>
+                    <option value="standard">Standard</option>
+                    <option value="pro">Pro</option>
+                    <option value="tourney">Tourney</option>
                 </select>
             </div>
         </div>
@@ -286,10 +289,27 @@
                 if (e.target === modal) modal.style.display = 'none';
             };
 
-            // Initialize Firebase and load data
-            function loadPlayerStats() {
+            // Ensure user is signed in anonymously before loading data
+            async function ensureSignedIn() {
+                const app = firebase.app();
+                if (!app.options.databaseURL) {
+                    app.options.databaseURL = 'https://waddies-default-rtdb.firebaseio.com';
+                }
+                try {
+                    await firebase.auth().signInAnonymously();
+                } catch (e) {
+                    if (e && e.code === 'auth/operation-not-allowed') {
+                        throw new Error('Anonymous Auth is not enabled. Enable it in Firebase Console > Authentication > Sign-in method.');
+                    }
+                    throw e;
+                }
+            }
+
+            // Initialize Firebase and load data after auth
+            async function loadPlayerStats() {
                 document.getElementById('loadingIndicator').style.display = 'block';
                 try {
+                    await ensureSignedIn();
                     if (!firebase || !firebase.app) {
                         throw new Error('Firebase SDK not loaded. Check that the Firebase scripts are loading correctly.');
                     }
@@ -380,13 +400,13 @@
                     wins: calculateWins(id, dateRange, gameType, levelFilter),
                     losses: calculateLosses(id, dateRange, gameType, levelFilter),
                     totalGames: calculateTotalGames(id, dateRange, gameType, levelFilter),
-                    avgPointsPerRound: calculateAveragePointsPerRound(id),
-                    waddiesHoled: calculateWaddiesHoled(id),
-                    scoringRounds: calculateScoringRounds(id),
-                    bestRound: calculateBestRound(id),
-                    hammerPercent: calculateHammerPercentage(id),
-                    shootingFirstPercent: calculateShootingFirstPercentage(id),
-                    carryPercent: calculateCarryPercentage(id)
+                    avgPointsPerRound: calculateAveragePointsPerRound(id, dateRange, gameType, levelFilter),
+                    waddiesHoled: calculateWaddiesHoled(id, dateRange, gameType, levelFilter),
+                    scoringRounds: calculateScoringRounds(id, dateRange, gameType, levelFilter),
+                    bestRound: calculateBestRound(id, dateRange, gameType, levelFilter),
+                    hammerPercent: calculateHammerPercentage(id, dateRange, gameType, levelFilter),
+                    shootingFirstPercent: calculateShootingFirstPercentage(id, dateRange, gameType, levelFilter),
+                    carryPercent: calculateCarryPercentage(id, dateRange, gameType, levelFilter)
                 }));
 
                 // Sort players
@@ -404,17 +424,17 @@
                 tbody.innerHTML = players.map(player => `
                     <tr>
                         <td><a href="users.html?pid=${player.id}" class="player-name-link" data-player-id="${player.id}">${player.name}</a></td>
-                        <td>${calculateWins(player.id, dateRange, gameType)}</td>
-                        <td>${calculateLosses(player.id, dateRange, gameType)}</td>
-                        <td>${calculateTotalGames(player.id, dateRange, gameType)}</td>
-                        <td>${calculatePointsScored(player.id, dateRange, gameType)}</td>
-                        <td>${calculateAveragePointsPerRound(player.id).toFixed(1)}</td>
-                        <td>${calculateWaddiesHoled(player.id)}</td>
-                        <td>${calculateScoringRounds(player.id)}</td>
-                        <td>${calculateBestRound(player.id)}</td>
-                        <td>${calculateHammerPercentage(player.id).toFixed(1)}%</td>
-                        <td>${calculateShootingFirstPercentage(player.id).toFixed(1)}%</td>
-                        <td>${calculateCarryPercentage(player.id).toFixed(1)}%</td>
+                        <td>${player.wins}</td>
+                        <td>${player.losses}</td>
+                        <td>${player.totalGames}</td>
+                        <td>${calculatePointsScored(player.id, dateRange, gameType, levelFilter)}</td>
+                        <td>${player.avgPointsPerRound.toFixed(1)}</td>
+                        <td>${player.waddiesHoled}</td>
+                        <td>${player.scoringRounds}</td>
+                        <td>${player.bestRound}</td>
+                        <td>${player.hammerPercent.toFixed(1)}%</td>
+                        <td>${player.shootingFirstPercent.toFixed(1)}%</td>
+                        <td>${player.carryPercent.toFixed(1)}%</td>
                     </tr>
                 `).join('');
 
@@ -436,16 +456,16 @@
 
                 document.getElementById('modalPlayerName').textContent = player.name;
                 // Recompute fresh from current globals to avoid stale zeros
-                const wins = calculateWins(playerId, document.getElementById('dateRange').value, document.getElementById('gameType').value);
-                const totalGames = calculateTotalGames(playerId, document.getElementById('dateRange').value, document.getElementById('gameType').value);
+                const wins = calculateWins(playerId, document.getElementById('dateRange').value, document.getElementById('gameType').value, document.getElementById('levelFilter').value);
+                const totalGames = calculateTotalGames(playerId, document.getElementById('dateRange').value, document.getElementById('gameType').value, document.getElementById('levelFilter').value);
                 const winRate = totalGames > 0 ? (wins / totalGames) * 100 : 0;
-                const avgPtsPerRound = calculateAveragePointsPerRound(playerId);
-                const waddiesHoled = calculateWaddiesHoled(playerId);
-                const scoringRounds = calculateScoringRounds(playerId);
-                const bestRound = calculateBestRound(playerId);
-                const hammerPct = calculateHammerPercentage(playerId);
-                const firstPct = calculateShootingFirstPercentage(playerId);
-                const carryPct = calculateCarryPercentage(playerId);
+                const avgPtsPerRound = calculateAveragePointsPerRound(playerId, document.getElementById('dateRange').value, document.getElementById('gameType').value, document.getElementById('levelFilter').value);
+                const waddiesHoled = calculateWaddiesHoled(playerId, document.getElementById('dateRange').value, document.getElementById('gameType').value, document.getElementById('levelFilter').value);
+                const scoringRounds = calculateScoringRounds(playerId, document.getElementById('dateRange').value, document.getElementById('gameType').value, document.getElementById('levelFilter').value);
+                const bestRound = calculateBestRound(playerId, document.getElementById('dateRange').value, document.getElementById('gameType').value, document.getElementById('levelFilter').value);
+                const hammerPct = calculateHammerPercentage(playerId, document.getElementById('dateRange').value, document.getElementById('gameType').value, document.getElementById('levelFilter').value);
+                const firstPct = calculateShootingFirstPercentage(playerId, document.getElementById('dateRange').value, document.getElementById('gameType').value, document.getElementById('levelFilter').value);
+                const carryPct = calculateCarryPercentage(playerId, document.getElementById('dateRange').value, document.getElementById('gameType').value, document.getElementById('levelFilter').value);
                 
                 // Update stats grid
                 const statsGrid = document.getElementById('modalStats');
@@ -537,6 +557,16 @@
             });
         }
 
+        function isProGame(game, entry) {
+            const isProByMode = game && game.scoringMode === 'teamAttempts';
+            const hasCounts = entry && entry.rounds && entry.rounds.some(r => r && r.waddieCounts && (typeof r.waddieCounts.holed === 'number'));
+            return !!(isProByMode || hasCounts);
+        }
+
+        function isTourneyGame(game) {
+            return !!(game && game.tournamentId);
+        }
+
         function entryPassesFilters(entry, dateRange, gameType, levelFilter) {
             if (!(entry.meta && entry.meta.isValid)) return false;
             if (gameType && gameType !== 'all' && entry.meta.gameType && entry.meta.gameType !== gameType) return false;
@@ -544,13 +574,12 @@
             if (dateRange && dateRange !== 'all' && game && typeof game.date === 'number') {
                 if (!filterByDateRange(game.date, dateRange)) return false;
             }
-            // Level filter: treat Pro as scoringMode === 'teamAttempts' OR presence of per-round waddieCounts
             if (levelFilter && levelFilter !== 'all') {
-                if (levelFilter === 'pro') {
-                    const isProByMode = game && game.scoringMode === 'teamAttempts';
-                    const hasCounts = entry.rounds && entry.rounds.some(r => r && r.waddieCounts && (typeof r.waddieCounts.holed === 'number'));
-                    if (!isProByMode && !hasCounts) return false;
-                }
+                const pro = isProGame(game, entry);
+                const tourney = isTourneyGame(game);
+                if (levelFilter === 'pro' && !pro) return false;
+                if (levelFilter === 'tourney' && !tourney) return false;
+                if (levelFilter === 'standard' && (pro || tourney)) return false;
             }
             return true;
         }
