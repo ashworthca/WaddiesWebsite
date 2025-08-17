@@ -72,3 +72,5 @@ node_modules/
 public/data/
 RTDB/
 database.rules.json
+
+config/
