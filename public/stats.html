@@ -557,10 +557,16 @@
             });
         }
 
-        function isProGame(game, entry) {
-            const isProByMode = game && game.scoringMode === 'teamAttempts';
-            const hasCounts = entry && entry.rounds && entry.rounds.some(r => r && r.waddieCounts && (typeof r.waddieCounts.holed === 'number'));
-            return !!(isProByMode || hasCounts);
+        function isProGame(game) {
+            if (!game) return false;
+            if (game.scoringMode === 'teamAttempts') return true;
+            const rounds = getGameRoundsArray(game);
+            return rounds.some(r => {
+                const t1 = r && r.team1AttemptsRaw;
+                const t2 = r && r.team2AttemptsRaw;
+                return (t1 && (typeof t1.holed === 'number' || typeof t1.onBoard === 'number')) ||
+                       (t2 && (typeof t2.holed === 'number' || typeof t2.onBoard === 'number'));
+            });
         }
 
         function isTourneyGame(game) {
@@ -575,7 +581,7 @@
                 if (!filterByDateRange(game.date, dateRange)) return false;
             }
             if (levelFilter && levelFilter !== 'all') {
-                const pro = isProGame(game, entry);
+                const pro = isProGame(game);
                 const tourney = isTourneyGame(game);
                 if (levelFilter === 'pro' && !pro) return false;
                 if (levelFilter === 'tourney' && !tourney) return false;
