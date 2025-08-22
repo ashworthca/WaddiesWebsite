@@ -54,7 +54,7 @@
       try { await firebase.auth().signInAnonymously(); log('Anonymous auth: success'); } catch (e) { log('Anonymous auth: failed ' + (e?.code||'') + ' ' + (e?.message||'')); }
 
       const el = (id) => document.getElementById(id);
-      const state = { tid: localStorage.getItem('tourneyId') || '', pinOk: false, meta: null, owner: false, teams: {}, schedule: {}, standings: {}, devTournaments: [] };
+      const state = { tid: localStorage.getItem('tourneyId') || '', pinOk: false, meta: null, owner: false, teams: {}, schedule: {}, standings: {}, devTournaments: [], players: {} };
       const app = firebase.app(); if (!app.options.databaseURL) { app.options.databaseURL = 'https://waddies-default-rtdb.firebaseio.com'; }
       const db = firebase.database();
       log('App init; dbURL=' + (app.options.databaseURL||''));
@@ -214,6 +214,8 @@
         });
         db.ref(`/tournaments/${state.tid}/schedule`).on('value', s=>{ state.schedule = s.val() || {}; renderSchedule(); });
         db.ref(`/tournaments/${state.tid}/standings`).on('value', s=>{ state.standings = s.val() || {}; renderStandings(); });
+        // Observe global players for name/email resolution (read-only)
+        try { db.ref(`/players`).on('value', s=>{ state.players = s.val() || {}; renderTeams(); renderStandings(); }); } catch(_) {}
       }
 
       // DEV: observe all tournaments to list and quick-select (temporary)
@@ -301,6 +303,28 @@
         return id.slice(0,6) + '…';
       }
 
+      function playerLabel(pid){
+        if (!pid) return '';
+        const p = state.players && state.players[pid];
+        if (!p || typeof p !== 'object') return pid.slice(0,6) + '…';
+        const name = p.name || pid.slice(0,6) + '…';
+        const email = (p.emailPrivacy === true) ? '' : (p.email || '');
+        return email ? `${name} (${email})` : name;
+      }
+
+      function listPlayerLabelsFromStandingsEntry(s){
+        if (!s) return [];
+        const playersNode = s.players || s.playerIds || s.roster || null;
+        let ids = [];
+        if (Array.isArray(playersNode)){
+          if (playersNode.length && typeof playersNode[0] === 'string') ids = playersNode;
+          else ids = playersNode.map(x => (x && (x.id || x.playerId || x.pid)) || '').filter(Boolean);
+        } else if (playersNode && typeof playersNode === 'object'){
+          ids = Object.keys(playersNode);
+        }
+        return ids.map(playerLabel);
+      }
+
       function renderSchedule(){
         const tbody = el('scheduleBody'); tbody.innerHTML = '';
         const items = Object.values(state.schedule||{});
@@ -324,20 +348,23 @@
           rows = src.filter(Boolean).map(s => {
             const teamId = s.teamId || s.teamID || s.team || s.id || '';
             const teamName = s.teamName || s.name || '';
-            return { teamId, teamName, wins: Number(s?.wins||0), losses: Number(s?.losses||0), points: Number(s?.points||0) };
+            const playerLabels = listPlayerLabelsFromStandingsEntry(s);
+            return { teamId, teamName, wins: Number(s?.wins||0), losses: Number(s?.losses||0), points: Number(s?.points||0), players: playerLabels };
           });
         } else if (src && typeof src === 'object'){
           rows = Object.entries(src).map(([key, s]) => {
             const teamId = s?.teamId || s?.teamID || s?.team || key;
             const teamName = s?.teamName || s?.name || '';
-            return { teamId, teamName, wins: Number(s?.wins||0), losses: Number(s?.losses||0), points: Number(s?.points||0) };
+            const playerLabels = listPlayerLabelsFromStandingsEntry(s);
+            return { teamId, teamName, wins: Number(s?.wins||0), losses: Number(s?.losses||0), points: Number(s?.points||0), players: playerLabels };
           });
         }
         rows.sort((a,b)=> (b.points - a.points) || (b.wins - a.wins) || (a.losses - b.losses));
         rows.forEach(r => {
           const tr = document.createElement('tr');
           const label = r.teamName || teamNameById(r.teamId);
-          tr.innerHTML = `<td>${label}</td><td>${r.wins}-${r.losses}</td><td>${r.points}</td>`;
+          const playersText = (r.players && r.players.length) ? r.players.join(', ') : '';
+          tr.innerHTML = `<td>${label}</td><td>${r.wins}-${r.losses}</td><td>${r.points}</td><td>${playersText}</td>`;
           tbody.appendChild(tr);
         });
       }
@@ -577,7 +604,7 @@
         <div class="panel">
           <div class="section-title">Standings</div>
           <table class="table">
-            <thead><tr><th>Team</th><th>W-L</th><th>Points</th></tr></thead>
+            <thead><tr><th>Team</th><th>W-L</th><th>Points</th><th>Players</th></tr></thead>
             <tbody id="standingsBody"></tbody>
           </table>
         </div>
