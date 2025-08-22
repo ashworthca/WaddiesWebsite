@@ -102,6 +102,50 @@
           } catch(_) { /* ignore and continue */ }
         }
 
+        // Query tournaments by meta.joinCode (preferred per app schema)
+        try {
+          log("resolve: query /tournaments by meta/joinCode == '" + norm + "'");
+          const q1 = await db.ref('/tournaments').orderByChild('meta/joinCode').equalTo(norm).once('value');
+          if (q1.exists()){
+            const obj = q1.val() || {};
+            const tid = Object.keys(obj)[0] || '';
+            log('resolve: found by meta/joinCode tid=' + tid);
+            if (tid) return tid;
+          }
+          if (raw !== norm) {
+            log("resolve: query /tournaments by meta/joinCode == '" + raw + "'");
+            const q1b = await db.ref('/tournaments').orderByChild('meta/joinCode').equalTo(raw).once('value');
+            if (q1b.exists()){
+              const obj = q1b.val() || {};
+              const tid = Object.keys(obj)[0] || '';
+              log('resolve: found by meta/joinCode (raw) tid=' + tid);
+              if (tid) return tid;
+            }
+          }
+        } catch (e) { log('resolve: meta/joinCode query error ' + (e?.code||'') + ' ' + (e?.message||'')); }
+
+        // Fallback: some schemas place joinCode at root of tournament
+        try {
+          log("resolve: query /tournaments by joinCode == '" + norm + "'");
+          const q2 = await db.ref('/tournaments').orderByChild('joinCode').equalTo(norm).once('value');
+          if (q2.exists()){
+            const obj = q2.val() || {};
+            const tid = Object.keys(obj)[0] || '';
+            log('resolve: found by joinCode tid=' + tid);
+            if (tid) return tid;
+          }
+          if (raw !== norm) {
+            log("resolve: query /tournaments by joinCode == '" + raw + "'");
+            const q2b = await db.ref('/tournaments').orderByChild('joinCode').equalTo(raw).once('value');
+            if (q2b.exists()){
+              const obj = q2b.val() || {};
+              const tid = Object.keys(obj)[0] || '';
+              log('resolve: found by joinCode (raw) tid=' + tid);
+              if (tid) return tid;
+            }
+          }
+        } catch (e) { log('resolve: joinCode query error ' + (e?.code||'') + ' ' + (e?.message||'')); }
+
         // As a last resort, attempt raw (user may have typed the ID itself)
         log('resolve: mapping not found; falling back to raw id');
         return raw;
