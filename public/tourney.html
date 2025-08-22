@@ -54,7 +54,7 @@
       try { await firebase.auth().signInAnonymously(); log('Anonymous auth: success'); } catch (e) { log('Anonymous auth: failed ' + (e?.code||'') + ' ' + (e?.message||'')); }
 
       const el = (id) => document.getElementById(id);
-      const state = { tid: localStorage.getItem('tourneyId') || '', pinOk: false, meta: null, owner: false, teams: {}, schedule: {}, standings: {} };
+      const state = { tid: localStorage.getItem('tourneyId') || '', pinOk: false, meta: null, owner: false, teams: {}, schedule: {}, standings: {}, teamById: {} };
       const app = firebase.app(); if (!app.options.databaseURL) { app.options.databaseURL = 'https://waddies-default-rtdb.firebaseio.com'; }
       const db = firebase.database();
       log('App init; dbURL=' + (app.options.databaseURL||''));
@@ -193,26 +193,61 @@
       function observeTournament(){
         if (!state.tid) return;
         db.ref(`/tournaments/${state.tid}/meta`).on('value', s=>{ state.meta = s.val() || null; setBanner(); checkOwner(); });
-        db.ref(`/tournaments/${state.tid}/teams`).on('value', s=>{ state.teams = s.val() || {}; renderTeams(); renderSchedule(); renderStandings(); });
+        db.ref(`/tournaments/${state.tid}/teams`).on('value', s=>{
+          const val = s.val() || {};
+          state.teams = val;
+          // Build id->team lookup that works for both object and array shapes
+          const map = {};
+          if (Array.isArray(val)){
+            val.filter(Boolean).forEach(t => {
+              const id = (t && (t.id || t.teamId || t.guid || t.GUID || t.teamGUID)) || null;
+              if (id) map[id] = t;
+            });
+          } else if (val && typeof val === 'object'){
+            Object.entries(val).forEach(([k, t]) => {
+              const id = (t && (t.id || t.teamId || t.guid || t.GUID || t.teamGUID)) || k;
+              map[id] = t;
+            });
+          }
+          state.teamById = map;
+          renderTeams(); renderSchedule(); renderStandings();
+        });
         db.ref(`/tournaments/${state.tid}/schedule`).on('value', s=>{ state.schedule = s.val() || {}; renderSchedule(); });
         db.ref(`/tournaments/${state.tid}/standings`).on('value', s=>{ state.standings = s.val() || {}; renderStandings(); });
       }
 
       function renderTeams(){
         const list = el('teamsList'); list.innerHTML = '';
-        const teams = Object.entries(state.teams||{}).map(([id,t])=>{
-          if (typeof t === 'string') return { id, name: t, players: [] };
-          const displayName = (typeof t?.teamName === 'string' && t.teamName) || (t?.name || '');
-          let players = [];
-          if (Array.isArray(t?.players)){
-            if (t.players.length && typeof t.players[0] === 'string') players = t.players;
-            else players = t.players.map(p => (p && typeof p === 'object' && p.name) ? p.name : '').filter(Boolean);
-          } else if (Array.isArray(t?.playerNames)) {
-            players = t.playerNames.filter(Boolean);
-          }
-          return { id, name: displayName, players };
-        }).sort((a,b)=> a.name.localeCompare(b.name));
-        teams.forEach(t=>{
+        const entries = [];
+        const src = state.teams || {};
+        if (Array.isArray(src)){
+          src.filter(Boolean).forEach(t => {
+            const displayName = (typeof t?.teamName === 'string' && t.teamName) || (t?.name || '');
+            let players = [];
+            if (Array.isArray(t?.players)){
+              if (t.players.length && typeof t.players[0] === 'string') players = t.players;
+              else players = t.players.map(p => (p && typeof p === 'object' && p.name) ? p.name : '').filter(Boolean);
+            } else if (Array.isArray(t?.playerNames)) {
+              players = t.playerNames.filter(Boolean);
+            }
+            entries.push({ id: t?.id || t?.teamId || t?.guid || t?.GUID || '', name: displayName, players });
+          });
+        } else if (src && typeof src === 'object'){
+          Object.entries(src).forEach(([id, t]) => {
+            if (typeof t === 'string') { entries.push({ id, name: t, players: [] }); return; }
+            const displayName = (typeof t?.teamName === 'string' && t.teamName) || (t?.name || '');
+            let players = [];
+            if (Array.isArray(t?.players)){
+              if (t.players.length && typeof t.players[0] === 'string') players = t.players;
+              else players = t.players.map(p => (p && typeof p === 'object' && p.name) ? p.name : '').filter(Boolean);
+            } else if (Array.isArray(t?.playerNames)) {
+              players = t.playerNames.filter(Boolean);
+            }
+            entries.push({ id, name: displayName, players });
+          });
+        }
+        entries.sort((a,b)=> a.name.localeCompare(b.name));
+        entries.forEach(t=>{
           const row = document.createElement('div');
           const players = (t.players||[]).filter(Boolean).join(', ');
           row.textContent = t.name + (players? ` — ${players}`:'');
@@ -222,7 +257,7 @@
 
       function teamNameById(id){
         if (!id) return '';
-        const t = state.teams?.[id];
+        const t = (state.teamById && state.teamById[id]) || (state.teams && state.teams[id]) || null;
         if (t == null) return id.slice(0,6) + '…';
         if (typeof t === 'string') return t;
         if (typeof t === 'object') return (typeof t.teamName === 'string' && t.teamName) || (typeof t.name === 'string' && t.name) || id.slice(0,6) + '…';
@@ -246,11 +281,26 @@
 
       function renderStandings(){
         const tbody = el('standingsBody'); tbody.innerHTML = '';
-        const rows = Object.entries(state.standings||{}).map(([teamId, s])=>({ teamId, wins:Number(s?.wins||0), losses:Number(s?.losses||0), points:Number(s?.points||0) }));
+        const src = state.standings || {};
+        let rows = [];
+        if (Array.isArray(src)){
+          rows = src.filter(Boolean).map(s => {
+            const teamId = s.teamId || s.teamID || s.team || s.id || '';
+            const teamName = s.teamName || s.name || '';
+            return { teamId, teamName, wins: Number(s?.wins||0), losses: Number(s?.losses||0), points: Number(s?.points||0) };
+          });
+        } else if (src && typeof src === 'object'){
+          rows = Object.entries(src).map(([key, s]) => {
+            const teamId = s?.teamId || s?.teamID || s?.team || key;
+            const teamName = s?.teamName || s?.name || '';
+            return { teamId, teamName, wins: Number(s?.wins||0), losses: Number(s?.losses||0), points: Number(s?.points||0) };
+          });
+        }
         rows.sort((a,b)=> (b.points - a.points) || (b.wins - a.wins) || (a.losses - b.losses));
         rows.forEach(r => {
           const tr = document.createElement('tr');
-          tr.innerHTML = `<td>${teamNameById(r.teamId)}</td><td>${r.wins}-${r.losses}</td><td>${r.points}</td>`;
+          const label = r.teamName || teamNameById(r.teamId);
+          tr.innerHTML = `<td>${label}</td><td>${r.wins}-${r.losses}</td><td>${r.points}</td>`;
           tbody.appendChild(tr);
         });
       }
