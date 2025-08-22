@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Waddies - Tournament</title>
+  <script defer src="/__/firebase/10.8.0/firebase-app-compat.js"></script>
+  <script defer src="/__/firebase/10.8.0/firebase-auth-compat.js"></script>
+  <script defer src="/__/firebase/10.8.0/firebase-database-compat.js"></script>
+  <script defer src="/__/firebase/10.8.0/firebase-app-check-compat.js"></script>
+  <script defer src="/__/firebase/init.js?useEmulator=false"></script>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; margin:0; background:#f5f5f7; color:#333; }
+    .container { max-width: 1200px; margin: 0 auto; padding: 1rem; }
+    .header { display:flex; align-items:center; justify-content:space-between; margin-bottom:1rem; }
+    .banner { background:#fff; border-radius:12px; box-shadow:0 1px 3px rgba(0,0,0,0.1); padding:0.75rem 1rem; display:flex; align-items:center; justify-content:space-between; }
+    .muted { color:#666; font-size:0.9rem; }
+    .grid { display:grid; grid-template-columns: 1fr; gap: 1rem; }
+    @media (min-width: 1000px) { .grid { grid-template-columns: 360px 1fr; } }
+    .panel { background:#fff; border-radius:12px; box-shadow:0 1px 3px rgba(0,0,0,0.1); padding:1rem; }
+    .section-title { font-weight:700; color:#1a1a1a; margin:0 0 0.5rem; }
+    label { font-size:0.9rem; color:#555; }
+    input, select { padding:8px; border:1px solid #ddd; border-radius:8px; width:100%; }
+    .row { display:grid; grid-template-columns: 1fr 1fr; gap:8px; }
+    .btn { background:#0070c9; color:#fff; border:none; padding:8px 12px; border-radius:8px; cursor:pointer; }
+    .btn.secondary { background:#455a64; }
+    .btn.warn { background:#c62828; }
+    .error { background:#fee; color:#c00; padding:8px; border-radius:8px; margin-top:8px; }
+    .ok { background:#e7f9ed; color:#0a7d33; padding:6px 10px; border-radius:999px; font-size:0.8rem; }
+    .table { width:100%; border-collapse:collapse; font-size:0.95rem; }
+    .table th, .table td { padding:8px; border-bottom:1px solid #eee; text-align:left; }
+    .pill { padding:2px 8px; border-radius:999px; font-size:0.8rem; }
+    .pill.pending { background:#fff6e5; color:#8a5a00; }
+    .pill.in_progress { background:#e8f3ff; color:#0b5cab; }
+    .pill.completed { background:#e7f9ed; color:#0a7d33; }
+  </style>
+  <script>
+    document.addEventListener('DOMContentLoaded', async () => {
+      // App Check (enable with your site key in console when ready)
+      try { if (firebase && firebase.appCheck) { firebase.appCheck().activate(undefined, true); } } catch (_) {}
+
+      // Auth
+      try { await firebase.auth().signInAnonymously(); } catch (_) {}
+
+      const el = (id) => document.getElementById(id);
+      const state = { tid: localStorage.getItem('tourneyId') || '', pinOk: false, meta: null, owner: false, teams: {}, schedule: {}, standings: {} };
+      const app = firebase.app(); if (!app.options.databaseURL) { app.options.databaseURL = 'https://waddies-default-rtdb.firebaseio.com'; }
+      const db = firebase.database();
+
+      function setBanner(){
+        const name = state.meta?.name || 'Tournament';
+        const ownerBadge = state.owner ? '<span class="ok">Owner</span>' : '';
+        el('bannerTitle').innerHTML = `${name} ${ownerBadge}`;
+      }
+
+      async function hashSHA256Hex(str){
+        const enc = new TextEncoder();
+        const buf = await crypto.subtle.digest('SHA-256', enc.encode(str));
+        return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+      }
+
+      async function resolveTournamentId(input){
+        const raw = (input||'').trim();
+        if (!raw) throw new Error('Enter a join code or tournament ID');
+        // Heuristic: treat 6-8 char alphanum as a code; otherwise assume ID. Adjust when app mapping is confirmed.
+        const looksLikeCode = /^[A-Za-z0-9]{6,8}$/.test(raw);
+        if (!looksLikeCode) return raw; // assume ID
+        const snap = await db.ref(`/tournament-codes/${raw}`).once('value');
+        if (!snap.exists()) throw new Error('Unknown join code');
+        const val = snap.val();
+        const tid = (val && (val.tournamentId || val.id)) || '';
+        if (!tid) throw new Error('Invalid join code mapping');
+        return tid;
+      }
+
+      function toggleViews(){
+        const joined = !!(state.tid && state.pinOk);
+        el('joinPanel').style.display = joined ? 'none' : 'block';
+        el('mainPanel').style.display = joined ? 'block' : 'none';
+        const ownerOnly = state.owner && joined;
+        el('teamsIntake').style.display = ownerOnly ? 'block' : 'none';
+        el('ownerAuth').style.display = joined ? 'block' : 'none';
+        el('ownerSignedOut').style.display = state.owner ? 'none' : 'inline';
+        el('ownerSignedIn').style.display = state.owner ? 'inline' : 'none';
+      }
+
+      async function checkOwner(){
+        const user = firebase.auth().currentUser; const uid = user?.uid || null;
+        state.owner = !!(uid && state.meta && state.meta.ownerUid && uid === state.meta.ownerUid);
+        setBanner(); toggleViews();
+      }
+
+      function observeTournament(){
+        if (!state.tid) return;
+        db.ref(`/tournaments/${state.tid}/meta`).on('value', s=>{ state.meta = s.val() || null; setBanner(); checkOwner(); });
+        db.ref(`/tournaments/${state.tid}/teams`).on('value', s=>{ state.teams = s.val() || {}; renderTeams(); renderSchedule(); renderStandings(); });
+        db.ref(`/tournaments/${state.tid}/schedule`).on('value', s=>{ state.schedule = s.val() || {}; renderSchedule(); });
+        db.ref(`/tournaments/${state.tid}/standings`).on('value', s=>{ state.standings = s.val() || {}; renderStandings(); });
+      }
+
+      function renderTeams(){
+        const list = el('teamsList'); list.innerHTML = '';
+        const teams = Object.entries(state.teams||{}).map(([id,t])=>({id, name:t?.name||'', players:Array.isArray(t?.players)? t.players: []})).sort((a,b)=> a.name.localeCompare(b.name));
+        teams.forEach(t=>{
+          const row = document.createElement('div');
+          const players = (t.players||[]).map(p=> p?.name || '').filter(Boolean).join(', ');
+          row.textContent = t.name + (players? ` — ${players}`:'');
+          list.appendChild(row);
+        });
+      }
+
+      function teamNameById(id){
+        const t = state.teams?.[id]; return t?.name || (id? id.slice(0,6)+'…':'');
+      }
+
+      function renderSchedule(){
+        const tbody = el('scheduleBody'); tbody.innerHTML = '';
+        const items = Object.values(state.schedule||{});
+        items.sort((a,b)=> (a?.startTime||0) - (b?.startTime||0));
+        items.forEach(it => {
+          const tr = document.createElement('tr');
+          const start = it?.startTime ? new Date(it.startTime*1000).toLocaleString() : '';
+          const status = String(it?.status||'pending');
+          const pillClass = status.replace('-', '_');
+          const score = (status==='completed' && it?.finalScore) ? ` — ${it.finalScore}` : '';
+          tr.innerHTML = `<td>${it?.round ?? ''}</td><td>${it?.court ?? ''}</td><td>${start}</td><td>${teamNameById(it?.team1Id)} vs ${teamNameById(it?.team2Id)}${score}</td><td><span class="pill ${pillClass}">${status}</span></td>`;
+          tbody.appendChild(tr);
+        });
+      }
+
+      function renderStandings(){
+        const tbody = el('standingsBody'); tbody.innerHTML = '';
+        const rows = Object.entries(state.standings||{}).map(([teamId, s])=>({ teamId, wins:Number(s?.wins||0), losses:Number(s?.losses||0), points:Number(s?.points||0) }));
+        rows.sort((a,b)=> (b.points - a.points) || (b.wins - a.wins) || (a.losses - b.losses));
+        rows.forEach(r => {
+          const tr = document.createElement('tr');
+          tr.innerHTML = `<td>${teamNameById(r.teamId)}</td><td>${r.wins}-${r.losses}</td><td>${r.points}</td>`;
+          tbody.appendChild(tr);
+        });
+      }
+
+      async function doJoin(){
+        const errBox = el('joinErr');
+        errBox.textContent = '';
+        const codeOrId = el('joinCode').value.trim();
+        const pin = el('joinPin').value.trim();
+        if (!/^[0-9]{4}$/.test(pin)) { errBox.textContent = 'PIN must be 4 digits'; return; }
+        el('joinBtn').disabled = true; el('joinBtn').textContent = 'Joining…';
+        try {
+          const tid = await resolveTournamentId(codeOrId);
+          const metaSnap = await db.ref(`/tournaments/${tid}/meta`).once('value');
+          if (!metaSnap.exists()) throw new Error('Tournament not found');
+          const meta = metaSnap.val();
+          const salt = meta?.scoringPasswordSalt || '';
+          const want = (meta?.scoringPasswordHash || '').toLowerCase();
+          const have = (await hashSHA256Hex(`${salt}${pin}`)).toLowerCase();
+          if (!want || have !== want) { errBox.textContent = 'Invalid PIN or code/ID'; return; }
+          state.tid = tid; state.pinOk = true; state.meta = meta; localStorage.setItem('tourneyId', tid);
+          setBanner(); toggleViews(); observeTournament();
+        } catch (e){
+          const msg = (e && e.code === 'PERMISSION_DENIED') ? 'Permission denied (check rules)' : (e?.message || String(e));
+          errBox.textContent = msg;
+        } finally {
+          el('joinBtn').disabled = false; el('joinBtn').textContent = 'Join';
+        }
+      }
+
+      async function addTeam(){
+        if (!state.owner || !state.tid) return;
+        const name = el('teamName').value.trim();
+        const p1 = el('player1').value.trim();
+        const p2 = el('player2').value.trim();
+        if (!name) { alert('Enter a team name'); return; }
+        const teamId = db.ref(`/tournaments/${state.tid}/teams`).push().key;
+        const players = [];
+        if (p1) players.push({ name: p1 });
+        if (p2) players.push({ name: p2 });
+        try {
+          await db.ref(`/tournaments/${state.tid}/teams/${teamId}`).set({ name, players });
+          el('teamName').value=''; el('player1').value=''; el('player2').value='';
+        } catch (e){
+          const msg = (e && e.code === 'PERMISSION_DENIED') ? 'Add team failed: owner account required' : ('Add team failed: ' + (e?.message||e));
+          alert(msg);
+        }
+      }
+
+      // Wire UI
+      el('joinBtn').onclick = doJoin;
+      el('addTeamBtn').onclick = addTeam;
+      firebase.auth().onAuthStateChanged(checkOwner);
+      el('ownerLoginBtn').onclick = async ()=>{
+        const email = el('ownerEmail').value.trim();
+        const pass = el('ownerPass').value;
+        el('ownerErr').textContent = '';
+        try { await firebase.auth().signInWithEmailAndPassword(email, pass); }
+        catch(e){ el('ownerErr').textContent = e?.message || String(e); }
+      };
+      el('ownerLogoutBtn').onclick = async ()=>{ try { await firebase.auth().signOut(); } catch(_){} };
+
+      // Auto-join if we have tid (PIN still required)
+      if (state.tid) {
+        el('joinCode').value = state.tid;
+      }
+    });
+  </script>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>Waddies Championship</h1>
+      <div class="muted"><a href="index.html">Home</a></div>
+    </div>
+
+    <div class="banner"><div id="bannerTitle">Tournament</div></div>
+
+    <div id="ownerAuth" class="panel" style="display:none; margin-top:1rem;">
+      <div class="section-title">Owner Sign In</div>
+      <div class="muted">Sign in with the same account that created the tournament to add teams.</div>
+      <div id="ownerSignedOut" style="display:none; margin-top:8px;">
+        <div class="row">
+          <div>
+            <label for="ownerEmail">Email</label>
+            <input id="ownerEmail" autocomplete="username" />
+          </div>
+          <div>
+            <label for="ownerPass">Password</label>
+            <input id="ownerPass" type="password" autocomplete="current-password" />
+          </div>
+        </div>
+        <div style="margin-top:8px; display:flex; gap:8px; align-items:center;">
+          <button id="ownerLoginBtn" class="btn secondary">Sign In</button>
+          <div id="ownerErr" class="error" style="display:inline-block;"></div>
+        </div>
+      </div>
+      <div id="ownerSignedIn" style="display:none; margin-top:8px;">
+        <span class="ok">Signed in as owner</span>
+        <button id="ownerLogoutBtn" class="btn warn" style="margin-left:8px;">Sign Out</button>
+      </div>
+    </div>
+
+    <div id="joinPanel" class="panel" style="margin-top:1rem;">
+      <div class="section-title">Join Tournament</div>
+      <div class="row">
+        <div>
+          <label for="joinCode">Join Code or Tournament ID</label>
+          <input id="joinCode" placeholder="ABC123 or tid_..." />
+        </div>
+        <div>
+          <label for="joinPin">4-digit PIN</label>
+          <input id="joinPin" placeholder="1234" inputmode="numeric" maxlength="4" />
+        </div>
+      </div>
+      <div style="margin-top:8px; display:flex; gap:8px; align-items:center;">
+        <button id="joinBtn" class="btn">Join</button>
+        <div id="joinErr" class="error" style="display:inline-block;"></div>
+      </div>
+    </div>
+
+    <div id="mainPanel" style="display:none;" class="grid">
+      <div>
+        <div id="teamsIntake" class="panel" style="display:none;">
+          <div class="section-title">Add Team (Owner Only)</div>
+          <div style="display:grid; gap:8px;">
+            <div>
+              <label for="teamName">Team Name</label>
+              <input id="teamName" placeholder="Team name" />
+            </div>
+            <div class="row">
+              <div>
+                <label for="player1">Player 1</label>
+                <input id="player1" placeholder="Player name" />
+              </div>
+              <div>
+                <label for="player2">Player 2 (optional)</label>
+                <input id="player2" placeholder="Player name" />
+              </div>
+            </div>
+            <div><button id="addTeamBtn" class="btn">Add Team</button></div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="section-title">Teams</div>
+          <div id="teamsList" style="display:grid; gap:6px;"></div>
+        </div>
+      </div>
+
+      <div>
+        <div class="panel">
+          <div class="section-title">Schedule</div>
+          <table class="table">
+            <thead><tr><th>Round</th><th>Court</th><th>Start</th><th>Match</th><th>Status</th></tr></thead>
+            <tbody id="scheduleBody"></tbody>
+          </table>
+        </div>
+
+        <div class="panel">
+          <div class="section-title">Standings</div>
+          <table class="table">
+            <thead><tr><th>Team</th><th>W-L</th><th>Points</th></tr></thead>
+            <tbody id="standingsBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
+
+
