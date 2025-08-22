@@ -201,12 +201,14 @@
       function renderTeams(){
         const list = el('teamsList'); list.innerHTML = '';
         const teams = Object.entries(state.teams||{}).map(([id,t])=>{
+          if (typeof t === 'string') return { id, name: t, players: [] };
           const displayName = (typeof t?.teamName === 'string' && t.teamName) || (t?.name || '');
-          // Accept players as array of strings OR array of {name}
           let players = [];
           if (Array.isArray(t?.players)){
             if (t.players.length && typeof t.players[0] === 'string') players = t.players;
             else players = t.players.map(p => (p && typeof p === 'object' && p.name) ? p.name : '').filter(Boolean);
+          } else if (Array.isArray(t?.playerNames)) {
+            players = t.playerNames.filter(Boolean);
           }
           return { id, name: displayName, players };
         }).sort((a,b)=> a.name.localeCompare(b.name));
@@ -219,9 +221,12 @@
       }
 
       function teamNameById(id){
+        if (!id) return '';
         const t = state.teams?.[id];
-        if (!t) return (id? id.slice(0,6)+'…':'');
-        return (typeof t.teamName === 'string' && t.teamName) || (typeof t.name === 'string' && t.name) || (id? id.slice(0,6)+'…':'');
+        if (t == null) return id.slice(0,6) + '…';
+        if (typeof t === 'string') return t;
+        if (typeof t === 'object') return (typeof t.teamName === 'string' && t.teamName) || (typeof t.name === 'string' && t.name) || id.slice(0,6) + '…';
+        return id.slice(0,6) + '…';
       }
 
       function renderSchedule(){
