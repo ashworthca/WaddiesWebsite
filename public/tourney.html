@@ -69,19 +69,17 @@
         if (!looksLikeCode) return raw; // assume ID as entered
 
         // Try multiple common mapping locations used by the app/backend
-        const candidates = [
-          `/tournament-codes/${norm}`,
-          `/tournaments-by-code/${norm}`,
-          `/tournamentCodes/${norm}`,
-          `/codes/tournaments/${norm}`
-        ];
+        const bases = ['/tournament-codes', '/tournaments-by-code', '/tournamentCodes', '/codes/tournaments'];
+        const keys = [norm, raw]; // try normalized and raw key
+        const candidates = [];
+        bases.forEach(b => keys.forEach(k => candidates.push(`${b}/${k}`)));
 
         for (const path of candidates){
           try {
             const snap = await db.ref(path).once('value');
             if (snap.exists()){
               const val = snap.val();
-              const tid = (val && (val.tournamentId || val.id)) || '';
+              const tid = (val && (val.tournamentId || val.tournamentID || val.id || val.tid)) || '';
               if (tid) return tid;
             }
           } catch(_) { /* ignore and continue */ }
@@ -166,11 +164,18 @@
         el('joinBtn').disabled = true; el('joinBtn').textContent = 'Joining…';
         try {
           const tid = await resolveTournamentId(codeOrId);
-          const metaSnap = await db.ref(`/tournaments/${tid}/meta`).once('value');
+          // Fetch meta with fallbacks: /tournaments/{tid}/meta then /tournaments/{tid}
+          let metaPath = `/tournaments/${tid}/meta`;
+          let metaSnap = await db.ref(metaPath).once('value');
+          if (!metaSnap.exists()){
+            metaPath = `/tournaments/${tid}`;
+            metaSnap = await db.ref(metaPath).once('value');
+          }
           if (!metaSnap.exists()) throw new Error('Tournament not found (try entering the Tournament ID)');
-          const meta = metaSnap.val();
-          const salt = meta?.scoringPasswordSalt || '';
-          const want = (meta?.scoringPasswordHash || '').toLowerCase();
+          const rawMeta = metaSnap.val();
+          const meta = rawMeta && (rawMeta.meta ? rawMeta.meta : rawMeta);
+          const salt = (meta?.scoringPasswordSalt || rawMeta?.meta?.scoringPasswordSalt || '');
+          const want = (meta?.scoringPasswordHash || rawMeta?.meta?.scoringPasswordHash || '').toLowerCase();
           const have = (await hashSHA256Hex(`${salt}${pin}`)).toLowerCase();
           if (!want || have !== want) { errBox.textContent = 'Invalid PIN or code/ID'; return; }
           state.tid = tid; state.pinOk = true; state.meta = meta; localStorage.setItem('tourneyId', tid);
