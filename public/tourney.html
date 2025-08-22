@@ -177,8 +177,7 @@
         const joined = !!(state.tid && state.pinOk);
         el('joinPanel').style.display = joined ? 'none' : 'block';
         el('mainPanel').style.display = joined ? 'block' : 'none';
-        const ownerOnly = state.owner && joined;
-        el('teamsIntake').style.display = ownerOnly ? 'block' : 'none';
+        el('teamsIntake').style.display = joined ? 'block' : 'none';
         el('ownerAuth').style.display = joined ? 'block' : 'none';
         el('ownerSignedOut').style.display = state.owner ? 'none' : 'inline';
         el('ownerSignedIn').style.display = state.owner ? 'inline' : 'none';
@@ -624,7 +623,7 @@
     <div id="mainPanel" style="display:none;" class="grid">
       <div>
         <div id="teamsIntake" class="panel" style="display:none;">
-          <div class="section-title">Add Team (Owner Only)</div>
+          <div class="section-title">Add Team</div>
           <div style="display:grid; gap:8px;">
             <div>
               <label for="teamName">Team Name</label>
