@@ -62,15 +62,33 @@
       async function resolveTournamentId(input){
         const raw = (input||'').trim();
         if (!raw) throw new Error('Enter a join code or tournament ID');
-        // Heuristic: treat 6-8 char alphanum as a code; otherwise assume ID. Adjust when app mapping is confirmed.
-        const looksLikeCode = /^[A-Za-z0-9]{6,8}$/.test(raw);
-        if (!looksLikeCode) return raw; // assume ID
-        const snap = await db.ref(`/tournament-codes/${raw}`).once('value');
-        if (!snap.exists()) throw new Error('Unknown join code');
-        const val = snap.val();
-        const tid = (val && (val.tournamentId || val.id)) || '';
-        if (!tid) throw new Error('Invalid join code mapping');
-        return tid;
+        // Normalize code: remove non-alphanum and uppercase
+        const norm = raw.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
+        // Heuristic: treat short-ish token as a code; else assume ID
+        const looksLikeCode = /^[A-Z0-9]{4,12}$/.test(norm);
+        if (!looksLikeCode) return raw; // assume ID as entered
+
+        // Try multiple common mapping locations used by the app/backend
+        const candidates = [
+          `/tournament-codes/${norm}`,
+          `/tournaments-by-code/${norm}`,
+          `/tournamentCodes/${norm}`,
+          `/codes/tournaments/${norm}`
+        ];
+
+        for (const path of candidates){
+          try {
+            const snap = await db.ref(path).once('value');
+            if (snap.exists()){
+              const val = snap.val();
+              const tid = (val && (val.tournamentId || val.id)) || '';
+              if (tid) return tid;
+            }
+          } catch(_) { /* ignore and continue */ }
+        }
+
+        // As a last resort, attempt raw (user may have typed the ID itself)
+        return raw;
       }
 
       function toggleViews(){
@@ -149,7 +167,7 @@
         try {
           const tid = await resolveTournamentId(codeOrId);
           const metaSnap = await db.ref(`/tournaments/${tid}/meta`).once('value');
-          if (!metaSnap.exists()) throw new Error('Tournament not found');
+          if (!metaSnap.exists()) throw new Error('Tournament not found (try entering the Tournament ID)');
           const meta = metaSnap.val();
           const salt = meta?.scoringPasswordSalt || '';
           const want = (meta?.scoringPasswordHash || '').toLowerCase();
