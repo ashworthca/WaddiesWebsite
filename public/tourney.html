@@ -33,19 +33,31 @@
     .pill.pending { background:#fff6e5; color:#8a5a00; }
     .pill.in_progress { background:#e8f3ff; color:#0b5cab; }
     .pill.completed { background:#e7f9ed; color:#0a7d33; }
+    .diag-actions { display:flex; gap:8px; align-items:center; margin-bottom:6px; }
+    .diag-log { background:#0b0b0b; color:#d5d5d5; padding:8px; border-radius:8px; max-height:220px; overflow:auto; white-space:pre-wrap; }
   </style>
   <script>
     document.addEventListener('DOMContentLoaded', async () => {
       // App Check (enable with your site key in console when ready)
       try { if (firebase && firebase.appCheck) { firebase.appCheck().activate(undefined, true); } } catch (_) {}
 
+      // Simple diag logger
+      function log(message){
+        const ts = new Date().toISOString();
+        const line = `[${ts}] ${message}`;
+        try { console.log(line); } catch(_) {}
+        const box = document.getElementById('diagLog');
+        if (box){ box.textContent += (box.textContent ? '\n' : '') + line; box.scrollTop = box.scrollHeight; }
+      }
+
       // Auth
-      try { await firebase.auth().signInAnonymously(); } catch (_) {}
+      try { await firebase.auth().signInAnonymously(); log('Anonymous auth: success'); } catch (e) { log('Anonymous auth: failed ' + (e?.code||'') + ' ' + (e?.message||'')); }
 
       const el = (id) => document.getElementById(id);
       const state = { tid: localStorage.getItem('tourneyId') || '', pinOk: false, meta: null, owner: false, teams: {}, schedule: {}, standings: {} };
       const app = firebase.app(); if (!app.options.databaseURL) { app.options.databaseURL = 'https://waddies-default-rtdb.firebaseio.com'; }
       const db = firebase.database();
+      log('App init; dbURL=' + (app.options.databaseURL||''));
 
       function setBanner(){
         const name = state.meta?.name || 'Tournament';
@@ -66,7 +78,8 @@
         const norm = raw.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
         // Heuristic: treat short-ish token as a code; else assume ID
         const looksLikeCode = /^[A-Z0-9]{4,12}$/.test(norm);
-        if (!looksLikeCode) return raw; // assume ID as entered
+        log(`resolve: input='${raw}', norm='${norm}', looksLikeCode=${looksLikeCode}`);
+        if (!looksLikeCode) { log('resolve: treating input as tournament ID'); return raw; }
 
         // Try multiple common mapping locations used by the app/backend
         const bases = ['/tournament-codes', '/tournaments-by-code', '/tournamentCodes', '/codes/tournaments'];
@@ -76,16 +89,21 @@
 
         for (const path of candidates){
           try {
+            log('resolve: checking ' + path);
             const snap = await db.ref(path).once('value');
-            if (snap.exists()){
+            const exists = snap.exists();
+            log('resolve: ' + path + ' exists=' + exists);
+            if (exists){
               const val = snap.val();
               const tid = (val && (val.tournamentId || val.tournamentID || val.id || val.tid)) || '';
+              log('resolve: mapping found tid=' + (tid || '(empty)'));
               if (tid) return tid;
             }
           } catch(_) { /* ignore and continue */ }
         }
 
         // As a last resort, attempt raw (user may have typed the ID itself)
+        log('resolve: mapping not found; falling back to raw id');
         return raw;
       }
 
@@ -166,23 +184,29 @@
           const tid = await resolveTournamentId(codeOrId);
           // Fetch meta with fallbacks: /tournaments/{tid}/meta then /tournaments/{tid}
           let metaPath = `/tournaments/${tid}/meta`;
+          log('join: fetching meta at ' + metaPath);
           let metaSnap = await db.ref(metaPath).once('value');
           if (!metaSnap.exists()){
             metaPath = `/tournaments/${tid}`;
+            log('join: fallback fetch at ' + metaPath);
             metaSnap = await db.ref(metaPath).once('value');
           }
+          log('join: meta exists=' + metaSnap.exists());
           if (!metaSnap.exists()) throw new Error('Tournament not found (try entering the Tournament ID)');
           const rawMeta = metaSnap.val();
           const meta = rawMeta && (rawMeta.meta ? rawMeta.meta : rawMeta);
           const salt = (meta?.scoringPasswordSalt || rawMeta?.meta?.scoringPasswordSalt || '');
           const want = (meta?.scoringPasswordHash || rawMeta?.meta?.scoringPasswordHash || '').toLowerCase();
           const have = (await hashSHA256Hex(`${salt}${pin}`)).toLowerCase();
-          if (!want || have !== want) { errBox.textContent = 'Invalid PIN or code/ID'; return; }
+          const match = !!(want && have === want);
+          log('join: pin validation match=' + match + ' (not logging pin/hash)');
+          if (!match) { errBox.textContent = 'Invalid PIN or code/ID'; return; }
           state.tid = tid; state.pinOk = true; state.meta = meta; localStorage.setItem('tourneyId', tid);
           setBanner(); toggleViews(); observeTournament();
         } catch (e){
           const msg = (e && e.code === 'PERMISSION_DENIED') ? 'Permission denied (check rules)' : (e?.message || String(e));
           errBox.textContent = msg;
+          log('join: error ' + msg);
         } finally {
           el('joinBtn').disabled = false; el('joinBtn').textContent = 'Join';
         }
@@ -199,31 +223,38 @@
         if (p1) players.push({ name: p1 });
         if (p2) players.push({ name: p2 });
         try {
+          log('addTeam: writing teamId=' + teamId + ' name=' + name);
           await db.ref(`/tournaments/${state.tid}/teams/${teamId}`).set({ name, players });
           el('teamName').value=''; el('player1').value=''; el('player2').value='';
+          log('addTeam: success');
         } catch (e){
           const msg = (e && e.code === 'PERMISSION_DENIED') ? 'Add team failed: owner account required' : ('Add team failed: ' + (e?.message||e));
           alert(msg);
+          log('addTeam: error ' + msg);
         }
       }
 
       // Wire UI
       el('joinBtn').onclick = doJoin;
       el('addTeamBtn').onclick = addTeam;
-      firebase.auth().onAuthStateChanged(checkOwner);
+      firebase.auth().onAuthStateChanged((u)=>{ log('auth: state changed uid=' + (u?.uid||'null')); checkOwner(); });
       el('ownerLoginBtn').onclick = async ()=>{
         const email = el('ownerEmail').value.trim();
         const pass = el('ownerPass').value;
         el('ownerErr').textContent = '';
-        try { await firebase.auth().signInWithEmailAndPassword(email, pass); }
-        catch(e){ el('ownerErr').textContent = e?.message || String(e); }
+        try { await firebase.auth().signInWithEmailAndPassword(email, pass); log('owner: sign-in attempt for ' + email); }
+        catch(e){ const m = e?.message || String(e); el('ownerErr').textContent = m; log('owner: sign-in error ' + m); }
       };
-      el('ownerLogoutBtn').onclick = async ()=>{ try { await firebase.auth().signOut(); } catch(_){} };
+      el('ownerLogoutBtn').onclick = async ()=>{ try { await firebase.auth().signOut(); log('owner: sign-out'); } catch(e){ log('owner: sign-out error ' + (e?.message||e)); } };
 
       // Auto-join if we have tid (PIN still required)
-      if (state.tid) {
-        el('joinCode').value = state.tid;
-      }
+      if (state.tid) { el('joinCode').value = state.tid; log('auto-fill from localStorage.tourneyId=' + state.tid); }
+
+      // Diag copy/clear
+      document.getElementById('diagCopy').onclick = async ()=>{
+        try { await navigator.clipboard.writeText(document.getElementById('diagLog').textContent || ''); } catch(_){}
+      };
+      document.getElementById('diagClear').onclick = ()=>{ const b=document.getElementById('diagLog'); if(b){ b.textContent=''; } };
     });
   </script>
 </head>
@@ -325,6 +356,16 @@
           </table>
         </div>
       </div>
+    </div>
+
+    <div class="panel" style="margin-top:1rem;">
+      <div class="section-title">Diagnostics (temporary)</div>
+      <div class="diag-actions">
+        <button id="diagCopy" class="btn secondary">Copy</button>
+        <button id="diagClear" class="btn warn">Clear</button>
+        <span class="muted">Include this log when reporting issues.</span>
+      </div>
+      <div id="diagLog" class="diag-log mono"></div>
     </div>
   </div>
 </body>
