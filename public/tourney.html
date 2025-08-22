@@ -21,7 +21,7 @@
     .section-title { font-weight:700; color:#1a1a1a; margin:0 0 0.5rem; }
     label { font-size:0.9rem; color:#555; }
     input, select { padding:8px; border:1px solid #ddd; border-radius:8px; width:100%; }
-    .row { display:grid; grid-template-columns: 1fr 1fr; gap:8px; }
+    .row { display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap:8px; }
     .btn { background:#0070c9; color:#fff; border:none; padding:8px 12px; border-radius:8px; cursor:pointer; }
     .btn.secondary { background:#455a64; }
     .btn.warn { background:#c62828; }
@@ -417,6 +417,43 @@
       };
       el('ownerLogoutBtn').onclick = async ()=>{ try { await firebase.auth().signOut(); log('owner: sign-out'); } catch(e){ log('owner: sign-out error ' + (e?.message||e)); } };
 
+      // Owner sign-in with Google (popup)
+      const googleBtn = document.getElementById('ownerGoogleBtn');
+      if (googleBtn) googleBtn.onclick = async ()=>{
+        el('ownerErr').textContent = '';
+        try { await firebase.auth().signInWithPopup(new firebase.auth.GoogleAuthProvider()); log('owner: Google sign-in popup complete'); }
+        catch(e){ const m = e?.message || String(e); el('ownerErr').textContent = m; log('owner: Google sign-in error ' + m); }
+      };
+
+      // Passwordless Email Link sign-in
+      const linkBtn = document.getElementById('ownerLinkBtn');
+      const actionCodeSettings = {
+        url: window.location.origin + '/tourney.html',
+        handleCodeInApp: true
+      };
+      if (linkBtn) linkBtn.onclick = async ()=>{
+        const email = el('ownerEmail').value.trim(); el('ownerErr').textContent = '';
+        if (!email) { el('ownerErr').textContent = 'Enter your owner email to send link'; return; }
+        try {
+          await firebase.auth().sendSignInLinkToEmail(email, actionCodeSettings);
+          try { window.localStorage.setItem('emailForSignIn', email); } catch(_){ }
+          log('owner: email link sent to ' + email);
+        } catch(e){ const m = e?.message || String(e); el('ownerErr').textContent = m; log('owner: email link error ' + m); }
+      };
+
+      // Complete email link sign-in if present
+      try {
+        if (firebase.auth().isSignInWithEmailLink(window.location.href)){
+          let email = '';
+          try { email = window.localStorage.getItem('emailForSignIn') || ''; } catch(_){ }
+          if (!email) email = window.prompt('Confirm your email for sign-in');
+          if (email) {
+            try { await firebase.auth().signInWithEmailLink(email, window.location.href); log('owner: email link sign-in complete'); }
+            catch(e){ log('owner: email link completion error ' + (e?.message||e)); }
+        }
+        }
+      } catch(_){}
+
       // Auto-join if we have tid (PIN still required)
       if (state.tid) { el('joinCode').value = state.tid; log('auto-fill from localStorage.tourneyId=' + state.tid); }
 
@@ -468,8 +505,10 @@
             <input id="ownerPass" type="password" autocomplete="current-password" />
           </div>
         </div>
-        <div style="margin-top:8px; display:flex; gap:8px; align-items:center;">
+        <div style="margin-top:8px; display:flex; gap:8px; align-items:center; flex-wrap: wrap;">
           <button id="ownerLoginBtn" class="btn secondary">Sign In</button>
+          <button id="ownerLinkBtn" class="btn secondary">Send Sign-in Link</button>
+          <button id="ownerGoogleBtn" class="btn secondary">Sign in with Google</button>
           <div id="ownerErr" class="error" style="display:inline-block;"></div>
         </div>
       </div>
