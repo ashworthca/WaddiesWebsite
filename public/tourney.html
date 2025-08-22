@@ -215,7 +215,37 @@
         db.ref(`/tournaments/${state.tid}/schedule`).on('value', s=>{ state.schedule = s.val() || {}; renderSchedule(); });
         db.ref(`/tournaments/${state.tid}/standings`).on('value', s=>{ state.standings = s.val() || {}; renderStandings(); });
         // Observe global players for name/email resolution (read-only)
-        try { db.ref(`/players`).on('value', s=>{ state.players = s.val() || {}; renderTeams(); renderStandings(); }); } catch(_) {}
+        try {
+          db.ref(`/players`).on('value', s=>{
+            const data = s.val() || {};
+            state.players = data;
+            // Build reverse maps: by exact key, by player.id, by previousIDs, and case-normalized variants
+            const byId = {};
+            const byAlt = {};
+            Object.entries(data).forEach(([key, p]) => {
+              if (!p || typeof p !== 'object') return;
+              byId[key] = p;
+              // Case-normalized keys
+              byAlt[key.toLowerCase()] = p;
+              byAlt[key.toUpperCase()] = p;
+              const altId = p.id || '';
+              if (altId) {
+                byAlt[altId] = p;
+                byAlt[(altId+'').toLowerCase()] = p;
+                byAlt[(altId+'').toUpperCase()] = p;
+              }
+              const prev = p.previousIDs && typeof p.previousIDs === 'object' ? Object.keys(p.previousIDs) : [];
+              prev.forEach(oldId => {
+                byAlt[oldId] = p;
+                byAlt[(oldId+'').toLowerCase()] = p;
+                byAlt[(oldId+'').toUpperCase()] = p;
+              });
+            });
+            state.playerById = byId;
+            state.playerByAltId = byAlt;
+            renderTeams(); renderStandings();
+          });
+        } catch(_) {}
       }
 
       // DEV: observe all tournaments to list and quick-select (temporary)
@@ -305,7 +335,7 @@
 
       function playerLabel(pid){
         if (!pid) return '';
-        const p = state.players && state.players[pid];
+        const p = (state.playerById && state.playerById[pid]) || (state.playerByAltId && state.playerByAltId[pid]) || (state.playerByAltId && state.playerByAltId[(pid+'').toLowerCase()]) || (state.playerByAltId && state.playerByAltId[(pid+'').toUpperCase()]);
         if (!p || typeof p !== 'object') return pid.slice(0,6) + '…';
         const name = p.name || pid.slice(0,6) + '…';
         const email = (p.emailPrivacy === true) ? '' : (p.email || '');
