@@ -54,7 +54,7 @@
       try { await firebase.auth().signInAnonymously(); log('Anonymous auth: success'); } catch (e) { log('Anonymous auth: failed ' + (e?.code||'') + ' ' + (e?.message||'')); }
 
       const el = (id) => document.getElementById(id);
-      const state = { tid: localStorage.getItem('tourneyId') || '', pinOk: false, meta: null, owner: false, teams: {}, schedule: {}, standings: {}, teamById: {} };
+      const state = { tid: localStorage.getItem('tourneyId') || '', pinOk: false, meta: null, owner: false, teams: {}, schedule: {}, standings: {}, devTournaments: [] };
       const app = firebase.app(); if (!app.options.databaseURL) { app.options.databaseURL = 'https://waddies-default-rtdb.firebaseio.com'; }
       const db = firebase.database();
       log('App init; dbURL=' + (app.options.databaseURL||''));
@@ -214,6 +214,43 @@
         });
         db.ref(`/tournaments/${state.tid}/schedule`).on('value', s=>{ state.schedule = s.val() || {}; renderSchedule(); });
         db.ref(`/tournaments/${state.tid}/standings`).on('value', s=>{ state.standings = s.val() || {}; renderStandings(); });
+      }
+
+      // DEV: observe all tournaments to list and quick-select (temporary)
+      function observeAllTournamentsDev(){
+        try {
+          log('dev: observing /tournaments');
+          db.ref('/tournaments').on('value', s => {
+            const root = s.val() || {};
+            const rows = Object.entries(root).map(([tid, node]) => {
+              const meta = (node && node.meta) ? node.meta : node;
+              const name = (meta && meta.name) || '(unnamed)';
+              const code = (meta && meta.joinCode) || '';
+              return { tid, name, code };
+            });
+            state.devTournaments = rows;
+            renderDevTournaments();
+          });
+        } catch (e){ log('dev: observe error ' + (e?.message||e)); }
+      }
+
+      function renderDevTournaments(){
+        const container = el('devList'); if (!container) return;
+        const q = (el('devFilter').value || '').toLowerCase();
+        const items = (state.devTournaments || []).filter(x => {
+          return !q || x.tid.toLowerCase().includes(q) || x.name.toLowerCase().includes(q) || x.code.toLowerCase().includes(q);
+        }).sort((a,b)=> a.name.localeCompare(b.name));
+        container.innerHTML = '';
+        items.forEach(x => {
+          const row = document.createElement('div');
+          row.style.display = 'grid'; row.style.gridTemplateColumns = '1fr auto'; row.style.gap = '8px'; row.style.alignItems = 'center';
+          const left = document.createElement('div');
+          left.innerHTML = `<strong>${x.name}</strong> <span class="muted">${x.tid.slice(0,8)}…</span>${x.code? ` · <span class='muted'>${x.code}</span>`:''}`;
+          const btn = document.createElement('button'); btn.className = 'btn secondary'; btn.textContent = 'Use';
+          btn.onclick = () => { el('joinCode').value = x.tid; log('dev: selected tid=' + x.tid); window.scrollTo({ top: 0, behavior: 'smooth' }); };
+          row.appendChild(left); row.appendChild(btn);
+          container.appendChild(row);
+        });
       }
 
       function renderTeams(){
@@ -388,6 +425,10 @@
         try { await navigator.clipboard.writeText(document.getElementById('diagLog').textContent || ''); } catch(_){}
       };
       document.getElementById('diagClear').onclick = ()=>{ const b=document.getElementById('diagLog'); if(b){ b.textContent=''; } };
+
+      // Wire dev list
+      const devFilter = document.getElementById('devFilter'); if (devFilter) devFilter.oninput = renderDevTournaments;
+      observeAllTournamentsDev();
     });
   </script>
 </head>
@@ -399,6 +440,19 @@
     </div>
 
     <div class="banner"><div id="bannerTitle">Tournament</div></div>
+
+    <div class="panel" style="margin-top:1rem;">
+      <div class="section-title">All Tournaments (dev)</div>
+      <div class="muted">Temporary list for troubleshooting. Click Use to prefill the join ID; PIN still required.</div>
+      <div class="row" style="margin-top:8px;">
+        <div>
+          <label for="devFilter">Filter</label>
+          <input id="devFilter" placeholder="Search by name, ID, or code" />
+        </div>
+        <div></div>
+      </div>
+      <div id="devList" style="display:grid; gap:6px; margin-top:8px;"></div>
+    </div>
 
     <div id="ownerAuth" class="panel" style="display:none; margin-top:1rem;">
       <div class="section-title">Owner Sign In</div>
