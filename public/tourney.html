@@ -81,6 +81,28 @@
         log(`resolve: input='${raw}', norm='${norm}', looksLikeCode=${looksLikeCode}`);
         if (!looksLikeCode) { log('resolve: treating input as tournament ID'); return raw; }
 
+        // FAST PATH: query tournaments by meta.joinCode first (matches app schema)
+        try {
+          log("resolve: FAST query /tournaments by meta/joinCode == '" + norm + "'");
+          const qFast = await db.ref('/tournaments').orderByChild('meta/joinCode').equalTo(norm).once('value');
+          if (qFast.exists()){
+            const obj = qFast.val() || {};
+            const tid = Object.keys(obj)[0] || '';
+            log('resolve: FAST found tid=' + tid);
+            if (tid) return tid;
+          }
+          if (raw !== norm) {
+            log("resolve: FAST query /tournaments by meta/joinCode == '" + raw + "'");
+            const qFastRaw = await db.ref('/tournaments').orderByChild('meta/joinCode').equalTo(raw).once('value');
+            if (qFastRaw.exists()){
+              const obj = qFastRaw.val() || {};
+              const tid = Object.keys(obj)[0] || '';
+              log('resolve: FAST found (raw) tid=' + tid);
+              if (tid) return tid;
+            }
+          }
+        } catch (e) { log('resolve: FAST meta/joinCode query error ' + (e?.code||'') + ' ' + (e?.message||'')); }
+
         // Try multiple common mapping locations used by the app/backend
         const bases = ['/tournament-codes', '/tournaments-by-code', '/tournamentCodes', '/codes/tournaments'];
         const keys = [norm, raw]; // try normalized and raw key
@@ -178,17 +200,28 @@
 
       function renderTeams(){
         const list = el('teamsList'); list.innerHTML = '';
-        const teams = Object.entries(state.teams||{}).map(([id,t])=>({id, name:t?.name||'', players:Array.isArray(t?.players)? t.players: []})).sort((a,b)=> a.name.localeCompare(b.name));
+        const teams = Object.entries(state.teams||{}).map(([id,t])=>{
+          const displayName = (typeof t?.teamName === 'string' && t.teamName) || (t?.name || '');
+          // Accept players as array of strings OR array of {name}
+          let players = [];
+          if (Array.isArray(t?.players)){
+            if (t.players.length && typeof t.players[0] === 'string') players = t.players;
+            else players = t.players.map(p => (p && typeof p === 'object' && p.name) ? p.name : '').filter(Boolean);
+          }
+          return { id, name: displayName, players };
+        }).sort((a,b)=> a.name.localeCompare(b.name));
         teams.forEach(t=>{
           const row = document.createElement('div');
-          const players = (t.players||[]).map(p=> p?.name || '').filter(Boolean).join(', ');
+          const players = (t.players||[]).filter(Boolean).join(', ');
           row.textContent = t.name + (players? ` — ${players}`:'');
           list.appendChild(row);
         });
       }
 
       function teamNameById(id){
-        const t = state.teams?.[id]; return t?.name || (id? id.slice(0,6)+'…':'');
+        const t = state.teams?.[id];
+        if (!t) return (id? id.slice(0,6)+'…':'');
+        return (typeof t.teamName === 'string' && t.teamName) || (typeof t.name === 'string' && t.name) || (id? id.slice(0,6)+'…':'');
       }
 
       function renderSchedule(){
@@ -263,12 +296,13 @@
         const p2 = el('player2').value.trim();
         if (!name) { alert('Enter a team name'); return; }
         const teamId = db.ref(`/tournaments/${state.tid}/teams`).push().key;
+        // Write as teamName and players (array of strings) for compatibility
         const players = [];
-        if (p1) players.push({ name: p1 });
-        if (p2) players.push({ name: p2 });
+        if (p1) players.push(p1);
+        if (p2) players.push(p2);
         try {
           log('addTeam: writing teamId=' + teamId + ' name=' + name);
-          await db.ref(`/tournaments/${state.tid}/teams/${teamId}`).set({ name, players });
+          await db.ref(`/tournaments/${state.tid}/teams/${teamId}`).set({ teamName: name, name, players });
           el('teamName').value=''; el('player1').value=''; el('player2').value='';
           log('addTeam: success');
         } catch (e){
