@@ -345,14 +345,26 @@
       function listPlayerLabelsFromStandingsEntry(s){
         if (!s) return [];
         const playersNode = s.players || s.playerIds || s.roster || null;
-        let ids = [];
-        if (Array.isArray(playersNode)){
-          if (playersNode.length && typeof playersNode[0] === 'string') ids = playersNode;
-          else ids = playersNode.map(x => (x && (x.id || x.playerId || x.pid)) || '').filter(Boolean);
-        } else if (playersNode && typeof playersNode === 'object'){
-          ids = Object.keys(playersNode);
+        // Preferred: object map of playerId -> { name, email?, emailPrivacy? }
+        if (playersNode && typeof playersNode === 'object' && !Array.isArray(playersNode)){
+          return Object.entries(playersNode).map(([pid, p]) => {
+            if (p && typeof p === 'object'){
+              const name = p.name || playerLabel(pid);
+              const email = (p.emailPrivacy === true) ? '' : (p.email || '');
+              return email ? `${name} (${email})` : name;
+            }
+            if (typeof p === 'string') return p; // already a name string
+            return playerLabel(pid);
+          });
         }
-        return ids.map(playerLabel);
+        // Arrays: either [pid, pid] or [{id/pid}, ...]
+        if (Array.isArray(playersNode)){
+          const ids = (playersNode.length && typeof playersNode[0] === 'string')
+            ? playersNode
+            : playersNode.map(x => (x && (x.id || x.playerId || x.pid)) || '').filter(Boolean);
+          return ids.map(playerLabel);
+        }
+        return [];
       }
 
       function renderSchedule(){
