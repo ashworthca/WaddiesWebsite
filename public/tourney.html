@@ -192,7 +192,7 @@
 
       function observeTournament(){
         if (!state.tid) return;
-        db.ref(`/tournaments/${state.tid}/meta`).on('value', s=>{ state.meta = s.val() || null; setBanner(); checkOwner(); });
+        db.ref(`/tournaments/${state.tid}/meta`).on('value', s=>{ state.meta = s.val() || null; setBanner(); checkOwner(); updateIntakeUI(); });
         db.ref(`/tournaments/${state.tid}/teams`).on('value', s=>{
           const val = s.val() || {};
           state.teams = val;
@@ -367,6 +367,17 @@
         return [];
       }
 
+      function updateIntakeUI(){
+        const gt = (state.meta && state.meta.gameType) || '';
+        const is1v1 = (gt === '1v1');
+        const p2Row = document.getElementById('player2Row');
+        if (p2Row) p2Row.style.display = is1v1 ? 'none' : 'grid';
+        const teamNameInput = document.getElementById('teamName');
+        if (teamNameInput){
+          teamNameInput.placeholder = is1v1 ? 'Team <Player 1>' : '<Player 1> & <Player 2>';
+        }
+      }
+
       function renderSchedule(){
         const tbody = el('scheduleBody'); tbody.innerHTML = '';
         const items = Object.values(state.schedule||{});
@@ -454,17 +465,22 @@
         if (!state.owner || !state.tid) return;
         const name = el('teamName').value.trim();
         const p1 = el('player1').value.trim();
+        const p1e = (el('player1Email').value || '').trim();
         const p2 = el('player2').value.trim();
-        if (!name) { alert('Enter a team name'); return; }
+        const p2e = (el('player2Email').value || '').trim();
+        const gt = (state.meta && state.meta.gameType) || '';
+        const is1v1 = (gt === '1v1');
+        if (!p1) { alert('Enter Player 1 name'); return; }
+        if (!is1v1 && !p2) { alert('Enter Player 2 name'); return; }
+        const computedName = name || (is1v1 ? `Team ${p1}` : `${p1} & ${p2}`);
         const teamId = db.ref(`/tournaments/${state.tid}/teams`).push().key;
-        // Write as teamName and players (array of strings) for compatibility
-        const players = [];
-        if (p1) players.push(p1);
-        if (p2) players.push(p2);
+        // Write as teamName and players (array of strings) + playersObj (with email)
+        const players = is1v1 ? [p1] : [p1, p2];
+        const playersObj = is1v1 ? [{ name: p1, email: p1e }] : [{ name: p1, email: p1e }, { name: p2, email: p2e }];
         try {
-          log('addTeam: writing teamId=' + teamId + ' name=' + name);
-          await db.ref(`/tournaments/${state.tid}/teams/${teamId}`).set({ teamName: name, name, players });
-          el('teamName').value=''; el('player1').value=''; el('player2').value='';
+          log('addTeam: writing teamId=' + teamId + ' name=' + computedName);
+          await db.ref(`/tournaments/${state.tid}/teams/${teamId}`).set({ teamName: computedName, name: computedName, players, playersObj });
+          el('teamName').value=''; el('player1').value=''; el('player1Email').value=''; el('player2').value=''; el('player2Email').value='';
           log('addTeam: success');
         } catch (e){
           const msg = (e && e.code === 'PERMISSION_DENIED') ? 'Add team failed: owner account required' : ('Add team failed: ' + (e?.message||e));
@@ -620,8 +636,18 @@
                 <input id="player1" placeholder="Player name" />
               </div>
               <div>
-                <label for="player2">Player 2 (optional)</label>
+                <label for="player1Email">Player 1 Email (optional)</label>
+                <input id="player1Email" placeholder="name@example.com" />
+              </div>
+            </div>
+            <div class="row" id="player2Row">
+              <div>
+                <label for="player2">Player 2</label>
                 <input id="player2" placeholder="Player name" />
+              </div>
+              <div>
+                <label for="player2Email">Player 2 Email (optional)</label>
+                <input id="player2Email" placeholder="name@example.com" />
               </div>
             </div>
             <div><button id="addTeamBtn" class="btn">Add Team</button></div>
