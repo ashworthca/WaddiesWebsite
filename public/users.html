@@ -29,25 +29,63 @@
     .team .players { font-size:0.85rem; color:#666; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
     .team .sub { font-size:0.9rem; color:#40576b; }
     .team.my .name { font-weight:800; }
+    .team.right, .team.right .name, .team.right .players, .team.right .sub { text-align:left; }
     .vs { display:flex; align-items:center; justify-content:center; color:#888; font-weight:700; }
     .winner { color:#0a7d33; font-size:0.85rem; }
     /* Round rows */
-    .round-row { padding:10px 12px; border-bottom:1px solid #eee; border-radius:8px; }
-    .round-row.scored-left { background: #f3fff6; }
-    .round-row.scored-right { background: #f3fff6; }
+    .round-row { position:relative; padding:12px 14px; border:1px solid #eee; border-radius:10px; margin-bottom:10px; background:#fff; }
+    
+    .round-row.footer { background:#f9fafb; }
+    
+    .round-row.header { background:#f7f7f7; }
+    .round-row.header .score { display:flex; align-items:center; width:100%; }
+    .round-row.header .score.left { justify-content:flex-start; text-align:left; }
+    .round-row.header .score.right { justify-content:flex-end; text-align:right; }
+    .round-row.header .score .name { font-weight:700; color:#1a1a1a; }
+    .round-row.header .round-center { display:flex; align-items:center; justify-content:center; }
+    .round-row.header .round-center .num { display:inline-flex; align-items:center; justify-content:center; min-width:36px; }
+
+    .round-row.scored-left::before,
+    .round-row.scored-right::before { content:""; position:absolute; top:0; bottom:0; width:4px; border-radius:10px 0 0 10px; background:#c6f7d0; }
+    .round-row.scored-left::before { left:0; }
+    .round-row.scored-right::before { right:0; border-radius:0 10px 10px 0; }
     .round-row .top { display:grid; grid-template-columns: 1fr 120px 1fr; align-items:center; column-gap:12px; }
-    .score { display:grid; grid-auto-flow:column; grid-auto-columns:min-content; gap:6px; align-items:center; }
-    .score .total { font-weight:700; }
-    .score .delta.scored { color:#0a7d33; font-weight:700; }
+    .round-row .top > * { padding: 0 8px; }
+    .round-row .top > * + * { border-left:1px solid #e5e7eb; }
+    .score { display:grid; grid-auto-flow:column; grid-auto-columns:min-content; gap:8px; align-items:center; color:#1a1a1a; }
+    .score.right { justify-content:end; justify-items:end; text-align:right; }
+    .score .tosser { color:#666; font-size:0.85rem; }
+    .score .total { font-weight:800; font-size:1.1rem; }
+    .score .delta.scored { color:#0a7d33; font-weight:800; }
     .round-center { display:grid; justify-items:center; }
-    .round-center .num { font-weight:700; }
+    .round-center .num { font-weight:700; background:#f2f4f7; padding:2px 8px; border-radius:999px; min-width:28px; text-align:center; }
     .round-center .duration { font-size:0.8rem; color:#666; }
-    .bottom { display:grid; grid-template-columns: 1fr 1fr; gap:12px; margin-top:6px; font-size:0.9rem; color:#444; align-items:center; }
+    .bottom { display:grid; grid-template-columns: 1fr 1fr; gap:12px; margin-top:8px; font-size:0.9rem; color:#444; align-items:center; }
+    .bottom.standard { grid-template-columns: 1fr 120px 1fr; }
+    .bottom > * { padding: 0 8px; }
+    .bottom > * + * { border-left:1px solid #e5e7eb; }
+    .bottom .left { text-align:left; }
+    .bottom .center { text-align:center; }
+    .bottom .right { text-align:right; }
     .bottom .star { color:#f5a623; margin-right:4px; }
+    .score .hammer { font-size:0.9rem; opacity:0.7; margin-left:4px; }
+    .round-center .switch { color:#8a5a00; background:#fff4e5; padding:1px 8px; border-radius:999px; font-size:0.8rem; }
+    .round-row:hover { background:#f8fbff; border-color:#e5f1ff; }
+    @media (max-width: 520px){
+      .round-row .top { grid-template-columns: 1fr 72px 1fr; }
+      .round-center .duration { display:none; }
+    }
     .mono { font-variant-numeric: tabular-nums; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', monospace; }
     .stats-grid { display:grid; grid-template-columns: repeat(auto-fit, minmax(160px,1fr)); gap:0.75rem; }
     .stat-card { background:#f8f9fa; border-radius:8px; padding:0.75rem; text-align:center; }
     .stat-value { font-weight:700; font-size:1.2rem; color:#0070c9; }
+    /* Per-game player stats */
+    .game-stats { margin-top:10px; display:grid; grid-template-columns: 1fr 1fr; gap:8px; }
+    .game-stats .team-col { display:grid; gap:8px; }
+    .player-card { background:#f8f9fa; border-radius:8px; padding:8px; }
+    .player-card .title { font-weight:700; margin:0 0 6px; color:#1a1a1a; }
+    .player-card .row { display:flex; justify-content:space-between; font-size:0.9rem; color:#444; padding:2px 0; }
+    .player-card .row .label { color:#666; }
     .muted { color:#666; font-size:0.9rem; }
     .footer { text-align:center; margin-top:1rem; }
     a { color:#0070c9; text-decoration:none; }
@@ -56,6 +94,9 @@
     .section-title { font-weight:700; color:#1a1a1a; margin:0 0 0.5rem; }
     .divider { height:1px; background:#eee; margin:0.5rem 0 0.5rem; }
     select { padding:0.4rem 0.5rem; border:1px solid #ddd; border-radius:6px; }
+    @media (max-width: 640px){
+      .game-stats { grid-template-columns: 1fr; }
+    }
   </style>
 </head>
 <body>
@@ -155,6 +196,67 @@
       return sim(t1) || sim(t2) || [];
     }
 
+    function computePerPlayerGameStats(game, rounds){
+      const team1Id = game?.teams?.team1?.id; const team2Id = game?.teams?.team2?.id;
+      const team1Players = Object.keys(game?.teams?.team1?.players||{});
+      const team2Players = Object.keys(game?.teams?.team2?.players||{});
+      const playersByTeam = { team1: team1Players, team2: team2Players };
+      const hammerSeq = hammerSeries(game);
+
+      function holedFromPoints(pts){ return (pts===9)?3 : ((pts===6||pts===7)?2 : ((pts===3||pts===4||pts===5)?1:0)); }
+
+      function displayName(pid){
+        // Prefer in-game stored name, fallback to global players map, else short id
+        const obj = (game?.teams?.team1?.players||{})[pid] || (game?.teams?.team2?.players||{})[pid] || null;
+        if (obj && typeof obj === 'object' && obj.name) return obj.name;
+        return (players[pid]?.name) || pid.substring(0,6);
+      }
+
+      function statsForPlayer(pid){
+        const myTeam = team1Players.includes(pid)? 'team1' : (team2Players.includes(pid)? 'team2' : null);
+        const myTeamId = myTeam==='team1'? team1Id : team2Id;
+        let totalPoints=0, totalTossed=0, scoringRounds=0, bestRound=0, waddiesHoled=0;
+        let withHammerTotal=0, withHammerScoring=0, shootingFirstTotal=0, shootingFirstScoring=0;
+        for(const r of rounds){
+          const rn=r.roundNumber||0; const gr = (game.rounds || []).find(x=> (x?.roundNumber||0)===rn) || (game.rounds||[])[rn-1] || null; if(!gr) continue;
+          const iTossed = myTeam==='team1' ? gr.team1TosserId===pid : gr.team2TosserId===pid;
+          if(!iTossed) continue; totalTossed++;
+          const pts = Number(gr.pointsScored||0);
+          const teamScored = pts>0 && gr.scoringTeam===myTeamId;
+          if(teamScored){
+            scoringRounds++;
+            totalPoints += pts;
+            bestRound = Math.max(bestRound, pts);
+            waddiesHoled += holedFromPoints(pts);
+          }
+          // With hammer: use hammerSeq; fallback to gr flags if needed
+          const hadHammer = hammerSeq[(rn-1)] ? hammerSeq[(rn-1)]===myTeamId : !!( (myTeam==='team1' ? gr.team1HasHammer : gr.team2HasHammer) );
+          if(hadHammer){ withHammerTotal++; if(teamScored) withHammerScoring++; }
+          // Shooting first: defined as not having hammer at round start and scored
+          const shotFirst = !hadHammer;
+          if(shotFirst){ shootingFirstTotal++; if(teamScored) shootingFirstScoring++; }
+        }
+        const avgPts = totalTossed>0 ? (totalPoints/totalTossed) : 0;
+        const scoringPct = totalTossed>0 ? (scoringRounds/totalTossed*100) : 0;
+        return { totalPoints, scoringRounds, scoringPct, avgPts, bestRound, waddiesHoled, withHammerTotal, withHammerScoring, shootingFirstTotal, shootingFirstScoring, displayName: displayName(pid) };
+      }
+
+      // Compute team total points for Carry%
+      function teamTotalPoints(teamKey){
+        let sum=0; for(const r of (rounds||[])){
+          const rn=r.roundNumber||0; const gr = (game.rounds || []).find(x=> (x?.roundNumber||0)===rn) || (game.rounds||[])[rn-1] || null; if(!gr) continue;
+          const pts = Number(gr.pointsScored||0); if(pts>0 && gr.scoringTeam === (teamKey==='team1'? team1Id : team2Id)) sum += pts;
+        }
+        return sum;
+      }
+
+      const t1Total = teamTotalPoints('team1'); const t2Total = teamTotalPoints('team2');
+      const result = {};
+      for(const pid of team1Players){ const s = statsForPlayer(pid); result[pid] = { team:'team1', ...s, carryPct: t1Total>0? (s.totalPoints/t1Total*100): null }; }
+      for(const pid of team2Players){ const s = statsForPlayer(pid); result[pid] = { team:'team2', ...s, carryPct: t2Total>0? (s.totalPoints/t2Total*100): null }; }
+      return result;
+    }
+
     function attributeForGame(pid, entry){
       const game = getGameById(entry.gameId); const gameRs = roundsArr(game); const { teamId, idx } = teamInfo(pid, game);
       let points=0, tossed=0, scoringRounds=0, best=0;
@@ -244,7 +346,17 @@
       el('gameHeader').innerHTML = `<strong>${pm.title}</strong> <span class="badge">${pm.score}</span> · ${new Date((g?.date||0)*1000).toLocaleString()}`;
       const roundsDiv = el('rounds'); roundsDiv.innerHTML='';
       // join by roundNumber and render
-      let prevTs = null;
+      // Header row
+      const headerRow = document.createElement('div'); headerRow.className = 'round-row header';
+      headerRow.innerHTML = `
+        <div class="top">
+          <div class="score left"><span class="name">${teamNames(g,'team1')}</span></div>
+          <div class="round-center"><div class="num">Round</div><div class="duration mono"></div></div>
+          <div class="score right"><span class="name">${teamNames(g,'team2')}</span></div>
+        </div>`;
+      roundsDiv.appendChild(headerRow);
+
+      let prevTs = null; let totalDurationSec = 0;
       for(const r of entry.rounds){
         const rn=r.roundNumber||0; const gr = rs.find(x=> (x?.roundNumber||0)===rn) || rs[rn-1] || null; if(!gr) continue;
         const t1Score = Number(gr.team1Score||0);
@@ -259,14 +371,13 @@
         const deltaLeft = scoredLeft? ` <span class=\"delta scored\">+${pts}</span>`:'';
         const deltaRight= scoredRight? ` <span class=\"delta scored\">+${pts}</span>`:'';
         const ts = Number(r.timestamp || gr.timestamp || 0);
-        const dur = (prevTs && ts)? Math.max(0, ts - prevTs): 0; prevTs = ts; const m = Math.floor(dur/60), s = Math.floor(dur%60).toString().padStart(2,'0');
+        const dur = (prevTs && ts)? Math.max(0, ts - prevTs): 0; prevTs = ts; totalDurationSec += dur; const m = Math.floor(dur/60), s = Math.floor(dur%60).toString().padStart(2,'0');
         const switchIcon = pts===0 ? '↔' : '';
+        const hammerSeq = hammerSeries(g);
+        const hammerLeft  = hammerSeq[(rn-1)] === (g?.teams?.team1?.id||null);
+        const hammerRight = hammerSeq[(rn-1)] === (g?.teams?.team2?.id||null);
         row.innerHTML = `
-          <div class=\"top\">
-            <div class=\"score left\">${showTossers && t1Tosser? `<span class=\\\"tosser\\\">${t1Tosser} -</span>`:''}<span class=\"total\">${t1Score}</span>${deltaLeft}</div>
-            <div class=\"round-center\"><div class=\"num\">${switchIcon || rn}</div><div class=\"duration mono\">${m}:${s}</div></div>
-            <div class=\"score right\">${deltaRight}<span class=\"total\">${t2Score}</span>${showTossers && t2Tosser? `<span class=\\\"tosser\\\">- ${t2Tosser}</span>`:''}</div>
-          </div>`;
+          <div class=\"top\">\n            <div class=\"score left\"><span class=\"total\">${t1Score}</span>${deltaLeft}${hammerLeft? '<span class=\\\"hammer\\\">🔨</span>':''}</div>\n            <div class=\"round-center\"><div class=\"num\">${pts===0 ? '<span class=\\\"switch\\\">Switch</span>' : (switchIcon || rn)}</div><div class=\"duration mono\">${m}:${s}</div></div>\n            <div class=\"score right\">${deltaRight}<span class=\"total\">${t2Score}</span>${hammerRight? '<span class=\\\"hammer\\\">🔨</span>':''}</div>\n          </div>`;
         const bottom = document.createElement('div');
         const isPro = g?.scoringMode === 'teamAttempts';
         if (isPro) {
@@ -279,13 +390,57 @@
           `;
         } else {
           bottom.className = 'bottom standard';
-          const holedCount = gr.waddieStats ? Object.values(gr.waddieStats).filter(ws=>ws?.holed).length : 0;
+          const holedCount = (pts===9) ? 3 : ((pts===6||pts===7) ? 2 : ((pts===3||pts===4||pts===5) ? 1 : 0));
           const centerText = pts===0 ? 'Switch' : (holedCount>0 ? `${holedCount} Holed` : 'Board');
           bottom.innerHTML = `<div class=\"left\">${scoredLeft? '<span class=\\\"star\\\">★</span>':''} ${showTossers && t1Tosser? t1Tosser:''}</div><div class=\"center\">${centerText}</div><div class=\"right\">${showTossers && t2Tosser? t2Tosser:''} ${scoredRight? '<span class=\\\"star\\\">★</span>':''}</div>`;
         }
         row.appendChild(bottom);
         roundsDiv.appendChild(row);
       }
+      // Footer row with final score and total duration
+      const totalM = Math.floor(totalDurationSec/60), totalS = Math.floor(totalDurationSec%60).toString().padStart(2,'0');
+      const finalLeft = Number(g?.teams?.team1?.score||0);
+      const finalRight = Number(g?.teams?.team2?.score||0);
+      const footerRow = document.createElement('div'); footerRow.className = 'round-row footer';
+      footerRow.innerHTML = `
+        <div class="top">
+          <div class="score left"><span class="total">${finalLeft}</span></div>
+          <div class="round-center"><div class="num">Final</div><div class="duration mono">${totalM}:${totalS}</div></div>
+          <div class="score right"><span class="total">${finalRight}</span></div>
+        </div>`;
+      roundsDiv.appendChild(footerRow);
+
+      // Per-game stats for each player
+      const perPlayer = computePerPlayerGameStats(g, entry.rounds||[]);
+      const statsWrap = document.createElement('div'); statsWrap.className = 'game-stats';
+      const t1Ids = Object.keys(g?.teams?.team1?.players||{});
+      const t2Ids = Object.keys(g?.teams?.team2?.players||{});
+      const col1 = document.createElement('div'); col1.className = 'team-col';
+      const col2 = document.createElement('div'); col2.className = 'team-col';
+      function renderCard(pid){
+        const s = perPlayer[pid]; if(!s) return null; const name = s.displayName || (players[pid]?.name || pid.substring(0,6));
+        const withHammerPct = s.withHammerTotal>0 ? (s.withHammerScoring/s.withHammerTotal*100).toFixed(1)+'%' : '-';
+        const shootingFirstPct = s.shootingFirstTotal>0 ? (s.shootingFirstScoring/s.shootingFirstTotal*100).toFixed(1)+'%' : '-';
+        const carryPctText = (s.carryPct==null) ? '-' : s.carryPct.toFixed(1)+'%';
+        const card = document.createElement('div'); card.className='player-card';
+        card.innerHTML = `
+          <div class="title">${name}</div>
+          <div class="row"><span class="label">Total Points</span><span>${s.totalPoints}</span></div>
+          <div class="row"><span class="label">Scoring Rounds</span><span>${s.scoringRounds}</span></div>
+          <div class="row"><span class="label">Scoring %</span><span>${s.scoringPct.toFixed(1)}%</span></div>
+          <div class="row"><span class="label">Avg Points/Round</span><span>${s.avgPts.toFixed(2)}</span></div>
+          <div class="row"><span class="label">Best Round</span><span>${s.bestRound}</span></div>
+          <div class="row"><span class="label">Waddies Holed</span><span>${s.waddiesHoled}</span></div>
+          <div class="row"><span class="label">With Hammer</span><span>${withHammerPct}</span></div>
+          <div class="row"><span class="label">Shooting First</span><span>${shootingFirstPct}</span></div>
+          <div class="row"><span class="label">Carry %</span><span>${carryPctText}</span></div>
+        `;
+        return card;
+      }
+      for(const pid of t1Ids){ const card = renderCard(pid); if(card) col1.appendChild(card); }
+      for(const pid of t2Ids){ const card = renderCard(pid); if(card) col2.appendChild(card); }
+      statsWrap.appendChild(col1); statsWrap.appendChild(col2);
+      roundsDiv.appendChild(statsWrap);
     }
 
     async function load(){
